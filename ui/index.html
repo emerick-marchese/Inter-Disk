@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CableDrop</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%232563eb'/%3E%3Cpath d='M9 4v4M15 4v4M7 8h10v3a5 5 0 0 1-10 0zM12 16v4' stroke='white' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  color-scheme: light dark;
+  --bg:#f3f5f8; --card:#ffffff; --text:#18202c; --muted:#5d6979; --line:#e2e7ee; --hover:#f4f7fb;
+  --accent:#2563eb; --accent-h:#1d4ed8; --accent-soft:#e9f0ff; --on-accent:#ffffff;
+  --ok:#157a3a; --ok-soft:#e5f5eb; --warn:#9a5600; --warn-soft:#fff3dc; --err:#b42323; --err-soft:#fdeaea;
+  --shadow:0 1px 2px rgba(16,24,40,.05),0 6px 20px rgba(16,24,40,.05);
+  --r:16px;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0d1218; --card:#151c25; --text:#e6ebf2; --muted:#98a4b4; --line:#26303c; --hover:#1b2430;
+  --accent:#5b93ff; --accent-h:#7ba9ff; --accent-soft:#182844; --on-accent:#08101f;
+  --ok:#55d68b; --ok-soft:#11301f; --warn:#f5b93e; --warn-soft:#33270f; --err:#f47c7c; --err-soft:#3a1719;
+  --shadow:0 1px 2px rgba(0,0,0,.35);
+}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font:15px/1.5 "Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+code{font:13px/1.4 ui-monospace,"Cascadia Mono",Consolas,Menlo,monospace;background:var(--hover);padding:1px 6px;border-radius:6px;word-break:break-all}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 56px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:21px;letter-spacing:-.015em}
+.logo{width:36px;height:36px;border-radius:11px;background:var(--accent);display:grid;place-items:center;color:#fff;flex:none}
+.brand small{display:block;font-weight:500;font-size:13px;color:var(--muted);letter-spacing:0}
+.me{display:flex;align-items:center;gap:6px;color:var(--muted);flex-wrap:wrap}
+.me b{color:var(--text)}
+button{font:inherit;cursor:pointer;color:inherit}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--card);color:var(--text);padding:8px 14px;border-radius:10px;font-weight:600;transition:background .15s,border-color .15s,opacity .15s;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.btn:focus-visible,.peer:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{background:var(--accent-h);border-color:var(--accent-h)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{background:var(--hover);color:var(--text)}
+.btn.big{width:100%;padding:13px 16px;font-size:16px;border-radius:12px}
+.btn.sm{padding:5px 11px;font-size:13px;border-radius:8px}
+.btn.danger{color:var(--err)}
+.status{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-radius:12px;margin-bottom:16px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--muted)}
+.status.ok{border-left-color:var(--ok)}
+.status.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.status .dot{width:10px;height:10px;border-radius:50%;margin-top:6px;flex:none;background:var(--muted)}
+.status.ok .dot{background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft)}
+.status.warn .dot{background:var(--warn)}
+.status .extra{color:var(--muted);font-size:13.5px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start}
+@media (max-width:840px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+.card+.card{margin-top:0}
+h2{font-size:15.5px;margin:0 0 14px;display:flex;align-items:center;gap:10px;letter-spacing:-.005em}
+.step{width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
+.cardhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.cardhead h2{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+/* PC détectés */
+#peers{display:flex;flex-direction:column;gap:8px}
+.peer{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);transition:border-color .15s,background .15s}
+.peer:hover{border-color:var(--accent);}
+.peer.sel{border-color:var(--accent);background:var(--accent-soft)}
+.pc-ico{width:38px;height:38px;border-radius:10px;background:var(--hover);display:grid;place-items:center;color:var(--muted);flex:none}
+.peer.sel .pc-ico{background:var(--card);color:var(--accent)}
+.pinfo{flex:1;min-width:0;display:flex;flex-direction:column}
+.pinfo b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pinfo span{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:none}
+.peer.sel .radio{border:5px solid var(--accent)}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--hover);color:var(--muted);white-space:nowrap}
+.badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.badge.ok{background:var(--ok-soft);color:var(--ok)}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.searching{display:flex;gap:14px;align-items:center;padding:18px 14px;border:1.5px dashed var(--line);border-radius:12px}
+.spin{width:22px;height:22px;border-radius:50%;border:3px solid var(--accent-soft);border-top-color:var(--accent);animation:spin 1s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+details.help{margin-top:14px;font-size:14px}
+details.help summary{cursor:pointer;color:var(--accent);font-weight:600}
+details.help ol{margin:10px 0 0;padding-left:20px;color:var(--muted)}
+details.help li{margin-bottom:6px}
+details.help b{color:var(--text)}
+.manual{display:flex;gap:8px;margin-top:12px}
+input[type=text]{font:inherit;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:0;flex:1}
+/* Zone d'envoi */
+.drop{border:2px dashed var(--line);border-radius:14px;padding:26px 16px;text-align:center;transition:border-color .15s,background .15s}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop svg{color:var(--accent)}
+.drop p{margin:8px 0 14px;font-weight:600}
+.drop .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.sel-box{margin-top:14px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.sel-head{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 8px 14px;background:var(--hover);font-size:14px}
+.sel-list{list-style:none;margin:0;padding:4px 0;max-height:220px;overflow:auto}
+.sel-list li{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14px;font-size:14px}
+.sel-list .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sel-list .sz{color:var(--muted);font-size:13px;white-space:nowrap}
+.sel-list .x{border:0;background:transparent;color:var(--muted);width:26px;height:26px;border-radius:7px;font-size:17px;line-height:1}
+.sel-list .x:hover{background:var(--line);color:var(--text)}
+.fico{color:var(--muted);flex:none;display:grid}
+#sendBtn{margin-top:14px}
+/* Transferts */
+#xferCard{margin-top:16px}
+.xfer{padding:13px 0;border-top:1px solid var(--line)}
+.xfer:first-child{border-top:0}
+.xrow{display:flex;gap:12px;align-items:center}
+.xdir{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--accent-soft);color:var(--accent)}
+.xfer.in .xdir{background:var(--ok-soft);color:var(--ok)}
+.xmain{flex:1;min-width:0}
+.xtitle{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xsub{font-size:13.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xfer.st-error .xsub,.xfer.st-rejected .xsub{color:var(--err);white-space:normal}
+.xfer.st-done .xsub{color:var(--ok)}
+.xact{display:flex;gap:6px;flex:none}
+.bar{height:6px;background:var(--hover);border-radius:99px;overflow:hidden;margin:9px 0 0 46px}
+.bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .45s linear}
+.xfer.st-done .bar i{background:var(--ok)}
+.xfer.st-error .bar i,.xfer.st-cancelled .bar i,.xfer.st-rejected .bar i,.xfer.st-expired .bar i{background:var(--muted);opacity:.5}
+.xfer.nobar .bar{display:none}
+.xfer.wait .bar i{width:30%!important;animation:slide 1.3s ease-in-out infinite}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(340%)}}
+.empty{color:var(--muted);margin:6px 0}
+.foot{margin:14px 0 0;font-size:13.5px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* Fenêtres */
+.modal{position:fixed;inset:0;background:rgba(8,12,18,.55);display:grid;place-items:center;padding:16px;z-index:50;backdrop-filter:blur(2px)}
+.modal[hidden]{display:none}
+.dlg{background:var(--card);border:1px solid var(--line);border-radius:18px;max-width:500px;width:100%;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.3);max-height:calc(100vh - 32px);overflow:auto}
+.dlg h3{margin:0 0 6px;font-size:18px;letter-spacing:-.01em}
+.dlg .ico{width:46px;height:46px;border-radius:14px;background:var(--ok-soft);color:var(--ok);display:grid;place-items:center;margin-bottom:12px}
+.flist{list-style:none;margin:12px 0;padding:8px 12px;background:var(--hover);border-radius:10px;font-size:14px;max-height:180px;overflow:auto}
+.flist li{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 0}
+.dlg-btns{display:flex;gap:10px;margin-top:16px}
+.dlg-btns .btn{flex:1;padding:11px}
+.warnline{background:var(--err-soft);color:var(--err);padding:8px 12px;border-radius:10px;font-size:14px;margin:10px 0 0}
+.field{margin:14px 0}
+.field label{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+.field .row{display:flex;gap:8px}
+.pulse{animation:pulse 1.6s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(21,122,58,.35)}100%{box-shadow:0 0 0 16px rgba(21,122,58,0)}}
+/* Glisser-déposer sur toute la page */
+#dragPage{position:fixed;inset:10px;border:3px dashed var(--accent);border-radius:20px;background:color-mix(in srgb,var(--accent-soft) 85%,transparent);display:grid;place-items:center;z-index:40;pointer-events:none;font-size:22px;font-weight:700;color:var(--accent)}
+#dragPage[hidden]{display:none}
+#toasts{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:60;max-width:min(420px,calc(100vw - 32px))}
+.toast{background:var(--text);color:var(--bg);padding:11px 15px;border-radius:12px;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);animation:tin .2s ease-out}
+.toast.err{background:var(--err);color:#fff}
+@keyframes tin{from{transform:translateY(8px);opacity:0}}
+#offline{position:fixed;top:0;left:0;right:0;background:var(--err);color:#fff;text-align:center;padding:10px 16px;font-weight:600;z-index:70}
+#offline[hidden]{display:none}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="offline" hidden>CableDrop ne répond plus — la fenêtre du programme a-t-elle été fermée ? Relancez CableDrop.</div>
+<div id="dragPage" hidden>Déposez pour ajouter à l'envoi</div>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v4M15 3v4M7 7h10v4a5 5 0 0 1-10 0zM12 16v5"/></svg></div>
+      <div>CableDrop<small>Transfert de fichiers par câble Ethernet</small></div>
+    </div>
+    <div class="me">Ce PC : <b id="myName">…</b><button class="btn ghost sm" id="btnSettings" type="button">Réglages</button></div>
+  </header>
+
+  <div id="linkStatus" class="status"><span class="dot"></span><div>Chargement…</div></div>
+
+  <main class="grid">
+    <section class="card">
+      <h2><span class="step">1</span>PC destinataire</h2>
+      <div id="peers"></div>
+      <details class="help" id="help">
+        <summary>L'autre PC n'apparaît pas ?</summary>
+        <ol>
+          <li>Lancez <b>CableDrop sur les deux PC</b>.</li>
+          <li>Vérifiez que le <b>câble RJ45</b> est bien branché des deux côtés (les voyants de la prise doivent s'allumer).</li>
+          <li>Sans box entre les deux, <b>Windows met jusqu'à 1 minute</b> à donner une adresse automatique (169.254.x.x) au câble. Patientez un peu.</li>
+          <li><b>Pare-feu Windows</b> : au premier lancement, autorisez CableDrop en cochant aussi « <b>Réseaux publics</b> » (un câble direct est vu comme « Réseau non identifié »). Sinon, lancez <code>autoriser-pare-feu.bat</code> fourni avec CableDrop.</li>
+          <li>En dernier recours, saisissez ci-dessous l'adresse affichée en haut de la page CableDrop de l'autre PC.</li>
+        </ol>
+      </details>
+      <form class="manual" id="manualForm" autocomplete="off">
+        <input type="text" id="manualIP" placeholder="Ajouter par adresse IP (ex. 169.254.12.34)" inputmode="decimal" aria-label="Adresse IP de l'autre PC">
+        <button class="btn" type="submit">Ajouter</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2><span class="step">2</span>Fichiers à envoyer</h2>
+      <div class="drop" id="drop">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+        <p>Glissez vos fichiers ou dossiers ici</p>
+        <div class="row">
+          <button class="btn" type="button" id="pickFiles">Choisir des fichiers</button>
+          <button class="btn" type="button" id="pickDir">Choisir un dossier</button>
+        </div>
+      </div>
+      <input type="file" id="inFiles" multiple hidden>
+      <input type="file" id="inDir" webkitdirectory hidden>
+      <div class="sel-box" id="selBox" hidden>
+        <div class="sel-head"><span id="selSummary"></span><button class="btn ghost sm" type="button" id="selClear">Tout retirer</button></div>
+        <ul class="sel-list" id="selList"></ul>
+      </div>
+      <button class="btn primary big" id="sendBtn" type="button" disabled>Envoyer</button>
+    </section>
+  </main>
+
+  <section class="card" id="xferCard">
+    <div class="cardhead"><h2>Transferts</h2><button class="btn ghost sm" type="button" id="clearDone">Effacer l'historique</button></div>
+    <div id="xfers"></div>
+    <p class="empty" id="xferEmpty">Aucun transfert pour l'instant.</p>
+    <div class="foot">Fichiers reçus enregistrés dans <code id="dlDir">…</code><button class="btn sm" type="button" id="openDir">Ouvrir le dossier</button></div>
+  </section>
+</div>
+
+<!-- Demande de réception -->
+<div class="modal" id="mIn" hidden role="dialog" aria-modal="true" aria-labelledby="inTitle">
+  <div class="dlg">
+    <div class="ico pulse"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
+    <h3 id="inTitle">Demande de réception</h3>
+    <div id="inSummary" class="muted"></div>
+    <ul class="flist" id="inList"></ul>
+    <div class="small muted">Enregistrement dans <code id="inDest"></code></div>
+    <div id="inSpace"></div>
+    <div class="dlg-btns">
+      <button class="btn" type="button" id="inNo">Refuser</button>
+      <button class="btn primary" type="button" id="inYes">Accepter</button>
+    </div>
+    <p class="small muted" id="inTimer" style="text-align:center;margin:12px 0 0"></p>
+  </div>
+</div>
+
+<!-- Réglages -->
+<div class="modal" id="mSet" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
+  <form class="dlg" id="setForm" autocomplete="off">
+    <h3 id="setTitle">Réglages</h3>
+    <div class="field">
+      <label for="setName">Nom de ce PC (vu par l'autre PC)</label>
+      <input type="text" id="setName" maxlength="40" style="width:100%">
+    </div>
+    <div class="field">
+      <label for="setDir">Dossier de réception</label>
+      <div class="row"><input type="text" id="setDir"><button class="btn" type="button" id="setBrowse">Parcourir…</button></div>
+    </div>
+    <p class="small muted" id="setInfo"></p>
+    <div class="dlg-btns">
+      <button class="btn" type="button" id="setCancel">Annuler</button>
+      <button class="btn primary" type="submit">Enregistrer</button>
+    </div>
+  </form>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const nf = new Intl.NumberFormat('fr-FR', {maximumFractionDigits: 1});
+const nf0 = new Intl.NumberFormat('fr-FR');
+function fmtSize(b){ if (b < 1024) return nf0.format(b) + ' o'; const u = ['Ko','Mo','Go','To']; let i = -1; do { b /= 1024; i++; } while (b >= 1024 && i < u.length - 1); return nf.format(b) + ' ' + u[i]; }
+function fmtDur(s){ if (s < 1) return 'moins d\'1 s'; s = Math.round(s); if (s < 60) return s + ' s'; const m = Math.floor(s / 60); if (m < 60) return m + ' min ' + String(s % 60).padStart(2, '0') + ' s'; return Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0') + ' min'; }
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function plural(n, one, many){ return nf0.format(n) + ' ' + (n > 1 ? many : one); }
+const OS = {windows: 'Windows', darwin: 'macOS', linux: 'Linux'};
+
+const ICON = {
+  pc: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
+  file: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>',
+  folder: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  up: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
+  down: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>',
+};
+
+async function api(path, body){
+  const r = await fetch(path, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CableDrop': '1'}, body: JSON.stringify(body || {})});
+  const t = await r.text(); let j = {};
+  try { j = JSON.parse(t); } catch { j = {error: t}; }
+  if (!r.ok) throw new Error(j.error || t || r.statusText);
+  return j;
+}
+function toast(msg, kind){
+  const el = document.createElement('div'); el.className = 'toast' + (kind === 'err' ? ' err' : ''); el.textContent = msg;
+  $('#toasts').appendChild(el); setTimeout(() => el.remove(), kind === 'err' ? 7000 : 4000);
+}
+
+let state = null, selectedPeer = null, selection = [], peersSig = '';
+const waiters = new Map();
+const activeUploads = new Set();
+
+// ------------------------------------------------------------ état en direct
+function connect(){
+  const es = new EventSource('/api/events');
+  es.onmessage = e => { state = JSON.parse(e.data); $('#offline').hidden = true; onState(); };
+  es.onerror = () => { $('#offline').hidden = false; };
+}
+function onState(){
+  for (const [id, res] of waiters) {
+    const t = state.transfers.find(x => x.id === id);
+    if (!t) { res('gone'); waiters.delete(id); }
+    else if (t.state !== 'connecting' && t.state !== 'waiting') { res(t.state); waiters.delete(id); }
+  }
+  $('#myName').textContent = state.me.name;
+  $('#dlDir').textContent = state.me.download_dir;
+  renderLink(); renderPeers(); renderSend(); renderXfers(); renderIncoming();
+}
+
+function renderLink(){
+  const ifs = (state.ifaces || []).filter(i => i.kind !== 'virtual');
+  const cable = ifs.filter(i => i.kind === 'cable' || (i.kind === 'other' && i.link_local));
+  const direct = cable.find(i => i.link_local);
+  const el = $('#linkStatus'); let cls, html;
+  if (direct) {
+    cls = 'ok'; html = `<b>Câble Ethernet direct détecté</b> — carte « ${esc(direct.name)} »<div class="extra">Adresse de ce PC sur le câble : <code>${esc(direct.ip)}</code> · les transferts passent par le câble, pas par le Wi-Fi ni la box.</div>`;
+  } else if (cable.length) {
+    cls = 'ok'; html = `<b>Ethernet connecté</b> — carte « ${esc(cable[0].name)} »<div class="extra">Adresse de ce PC : <code>${esc(cable[0].ip)}</code> · les PC vus par ce câble sont utilisés en priorité.</div>`;
+  } else {
+    cls = 'warn'; html = `<b>Aucun câble Ethernet actif détecté.</b><div class="extra">Branchez le câble RJ45 entre les deux PC. Sous Windows, l'adresse automatique du câble (169.254.x.x) peut mettre jusqu'à 1 minute à apparaître.${ifs.length ? ' Autres cartes : ' + ifs.map(i => esc(i.name) + ' <code>' + esc(i.ip) + '</code>').join(', ') : ''}</div>`;
+  }
+  if (!state.discovery_ok) html += `<div class="extra" style="color:var(--err)">Détection automatique indisponible (port UDP 47820 occupé) : ajoutez l'autre PC par son adresse IP.</div>`;
+  if (el.dataset.h !== html) { el.dataset.h = html; el.className = 'status ' + cls; el.innerHTML = '<span class="dot"></span><div>' + html + '</div>'; }
+}
+
+function routeBadge(p){
+  const r = p.best;
+  if (r.kind === 'cable' || (r.kind === 'other' && r.link_local)) return `<span class="badge ok">${r.link_local ? 'Câble direct' : 'Câble Ethernet'}</span>`;
+  if (r.kind === 'wifi') return `<span class="badge warn" title="Ce PC n'est visible que par le Wi-Fi : vérifiez le câble">Wi-Fi seulement</span>`;
+  return `<span class="badge">Réseau · ${esc(r.iface)}</span>`;
+}
+function renderPeers(){
+  const peers = state.peers || [];
+  if (selectedPeer && !peers.some(p => p.id === selectedPeer)) selectedPeer = null;
+  if (!selectedPeer && peers.length === 1) selectedPeer = peers[0].id;
+  const sig = JSON.stringify([peers.map(p => [p.id, p.name, p.os, p.best.ip, p.best.kind, p.best.link_local, p.best.iface]), selectedPeer]);
+  if (sig === peersSig) return; peersSig = sig;
+  const box = $('#peers');
+  if (!peers.length) {
+    box.innerHTML = `<div class="searching"><span class="spin"></span><div><b>Recherche de l'autre PC…</b><br><span class="muted small">Lancez CableDrop sur l'autre PC, relié par le câble.</span></div></div>`;
+    return;
+  }
+  box.innerHTML = peers.map(p => `<button type="button" class="peer ${p.id === selectedPeer ? 'sel' : ''}" data-id="${esc(p.id)}" aria-pressed="${p.id === selectedPeer}">
+      <span class="pc-ico">${ICON.pc}</span>
+      <span class="pinfo"><b>${esc(p.name)}</b><span>${esc(OS[p.os] || p.os)} · ${esc(p.best.ip)}</span></span>
+      ${routeBadge(p)}<span class="radio"></span></button>`).join('');
+}
+$('#peers').addEventListener('click', e => {
+  const b = e.target.closest('.peer'); if (!b) return;
+  selectedPeer = b.dataset.id; peersSig = ''; renderPeers(); renderSend();
+});
+
+// ------------------------------------------------------------ sélection
+function groups(){
+  const m = new Map();
+  for (const f of selection) {
+    const parts = f.path.split('/'); const top = parts[0];
+    const g = m.get(top) || {name: top, dir: false, count: 0, size: 0};
+    g.count++; g.size += f.file.size; if (parts.length > 1) g.dir = true; m.set(top, g);
+  }
+  return [...m.values()];
+}
+function totalSize(list){ return list.reduce((s, f) => s + f.file.size, 0); }
+let selSig = '';
+function renderSend(){
+  const gs = groups(); const sig = gs.map(g => g.name + ':' + g.count + ':' + g.size).join('|');
+  if (sig !== selSig) {
+    selSig = sig;
+    $('#selBox').hidden = !selection.length;
+    $('#selSummary').textContent = plural(selection.length, 'fichier', 'fichiers') + ' · ' + fmtSize(totalSize(selection));
+    $('#selList').innerHTML = gs.slice(0, 300).map(g => `<li><span class="fico">${g.dir ? ICON.folder : ICON.file}</span><span class="nm" title="${esc(g.name)}">${esc(g.name)}</span><span class="sz">${g.dir ? plural(g.count, 'fichier', 'fichiers') + ' · ' : ''}${fmtSize(g.size)}</span><button type="button" class="x" data-top="${esc(g.name)}" title="Retirer" aria-label="Retirer ${esc(g.name)}">×</button></li>`).join('')
+      + (gs.length > 300 ? `<li class="muted">… et ${gs.length - 300} autres éléments</li>` : '');
+  }
+  const btn = $('#sendBtn');
+  const peer = state && (state.peers || []).find(p => p.id === selectedPeer);
+  if (!selection.length) { btn.disabled = true; btn.textContent = 'Envoyer'; }
+  else if (!peer) { btn.disabled = true; btn.textContent = 'Choisissez d\'abord le PC destinataire'; }
+  else { btn.disabled = false; btn.textContent = `Envoyer ${plural(selection.length, 'fichier', 'fichiers')} (${fmtSize(totalSize(selection))}) à ${peer.name}`; }
+}
+$('#selList').addEventListener('click', e => {
+  const b = e.target.closest('.x'); if (!b) return;
+  const top = b.dataset.top; selection = selection.filter(f => f.path.split('/')[0] !== top); renderSend();
+});
+$('#selClear').onclick = () => { selection = []; renderSend(); };
+
+function addFiles(list){
+  if (!list.length) { toast('Aucun fichier trouvé (dossier vide ?)'); return; }
+  const idx = new Map(selection.map((f, i) => [f.path, i]));
+  for (const f of list) { if (idx.has(f.path)) selection[idx.get(f.path)] = f; else { idx.set(f.path, selection.length); selection.push(f); } }
+  renderSend();
+}
+$('#pickFiles').onclick = () => $('#inFiles').click();
+$('#pickDir').onclick = () => $('#inDir').click();
+$('#inFiles').onchange = e => { addFiles([...e.target.files].map(f => ({path: f.name, file: f}))); e.target.value = ''; };
+$('#inDir').onchange = e => { addFiles([...e.target.files].map(f => ({path: f.webkitRelativePath || f.name, file: f}))); e.target.value = ''; };
+
+// Glisser-déposer (fichiers et dossiers), n'importe où sur la page.
+function readEntries(reader){ return new Promise((res, rej) => reader.readEntries(res, rej)); }
+async function walk(entry, prefix, out){
+  if (entry.isFile) {
+    const f = await new Promise((res, rej) => entry.file(res, rej));
+    out.push({path: prefix + entry.name, file: f});
+  } else if (entry.isDirectory) {
+    const reader = entry.createReader();
+    for (;;) { const batch = await readEntries(reader); if (!batch.length) break; for (const ch of batch) await walk(ch, prefix + entry.name + '/', out); }
+  }
+}
+let dragDepth = 0;
+const hasFiles = e => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+window.addEventListener('dragenter', e => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth++; $('#dragPage').hidden = false; $('#drop').classList.add('over'); });
+window.addEventListener('dragover', e => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+window.addEventListener('dragleave', e => { if (!hasFiles(e)) return; if (--dragDepth <= 0) { dragDepth = 0; $('#dragPage').hidden = true; $('#drop').classList.remove('over'); } });
+window.addEventListener('drop', async e => {
+  if (!hasFiles(e)) return; e.preventDefault(); dragDepth = 0; $('#dragPage').hidden = true; $('#drop').classList.remove('over');
+  const items = [...e.dataTransfer.items].filter(i => i.kind === 'file');
+  const entries = items.map(i => i.webkitGetAsEntry ? i.webkitGetAsEntry() : null);
+  const plain = [...e.dataTransfer.files];
+  if (!entries.length || entries.some(x => !x)) { addFiles(plain.map(f => ({path: f.name, file: f}))); return; }
+  const out = [];
+  try { for (const en of entries) await walk(en, '', out); }
+  catch (err) { toast('Lecture du dossier impossible : ' + err.message, 'err'); }
+  addFiles(out);
+});
+
+// ------------------------------------------------------------ envoi
+$('#sendBtn').onclick = async () => {
+  const peer = (state.peers || []).find(p => p.id === selectedPeer);
+  if (!peer || !selection.length) return;
+  const files = selection.slice();
+  selection = []; renderSend();
+  let id;
+  try {
+    id = (await api('/api/send', {peer_id: peer.id, files: files.map(f => ({path: f.path, size: f.file.size, mtime: f.file.lastModified || 0}))})).id;
+  } catch (err) { toast(err.message, 'err'); selection = files.concat(selection); renderSend(); return; }
+  activeUploads.add(id);
+  try {
+    const st = await new Promise(res => waiters.set(id, res));
+    if (st !== 'transferring') return;
+    for (let i = 0; i < files.length; i++) {
+      if (!files[i].file.size) continue; // fichier vide : rien à transmettre
+      let res;
+      try {
+        res = await fetch(`/api/upload?id=${encodeURIComponent(id)}&i=${i}`, {method: 'POST', headers: {'X-CableDrop': '1', 'Content-Type': 'application/octet-stream'}, body: files[i].file});
+      } catch (err) {
+        await api('/api/cancel', {id, reason: `Lecture impossible de « ${files[i].path} » (fichier déplacé, supprimé ou modifié ?).`}).catch(() => {});
+        return;
+      }
+      if (!res.ok) return; // l'erreur est affichée dans la liste des transferts
+    }
+  } finally { activeUploads.delete(id); }
+};
+window.addEventListener('beforeunload', e => { if (activeUploads.size) { e.preventDefault(); e.returnValue = ''; } });
+
+// ------------------------------------------------------------ transferts
+const xferEls = new Map();
+function xferText(t){
+  const who = t.peer_name;
+  const what = t.count === 1 ? t.first.split('/').pop() : plural(t.count, 'fichier', 'fichiers');
+  const title = (t.dir === 'out' ? 'Envoi vers ' : 'Réception depuis ') + who + ' — ' + what;
+  const via = t.kind === 'wifi' ? ' · via Wi-Fi' : (t.kind === 'cable' || t.link_local ? ' · par câble' : '');
+  let sub = '', pct = t.total > 0 ? t.done / t.total * 100 : (t.state === 'done' ? 100 : 0);
+  switch (t.state) {
+    case 'connecting': sub = 'Connexion à ' + who + '…'; break;
+    case 'waiting': sub = 'En attente d\'acceptation sur ' + who + '… (' + fmtSize(t.total) + ')'; break;
+    case 'pending': sub = 'En attente de votre réponse…'; break;
+    case 'transferring':
+      sub = fmtSize(t.done) + ' sur ' + fmtSize(t.total) + (t.speed > 0 ? ' · ' + fmtSize(t.speed) + '/s' : '') + (t.speed > 0 && t.eta > 0 ? ' · reste ' + fmtDur(t.eta) : '') + via;
+      if (t.count > 1 && t.current) sub += ' · ' + (t.cur_index + 1) + '/' + t.count + ' : ' + t.current.split('/').pop();
+      break;
+    case 'done': sub = 'Terminé · ' + fmtSize(t.total) + ' en ' + fmtDur(t.elapsed) + (t.speed > 0 ? ' (' + fmtSize(t.speed) + '/s)' : '') + via; pct = 100; break;
+    case 'rejected': sub = t.error || 'Refusé'; break;
+    case 'expired': sub = t.error || 'Demande expirée'; break;
+    case 'cancelled': sub = 'Annulé' + (t.error ? ' — ' + t.error : ''); break;
+    case 'error': sub = t.error || 'Erreur'; break;
+  }
+  return {title, sub, pct};
+}
+function renderXfers(){
+  const list = state.transfers || [];
+  const box = $('#xfers'); const seen = new Set();
+  $('#xferEmpty').hidden = list.length > 0;
+  let prev = null;
+  for (const t of list) {
+    seen.add(t.id);
+    let e = xferEls.get(t.id);
+    if (!e) {
+      e = document.createElement('div');
+      e.innerHTML = `<div class="xrow"><span class="xdir">${t.dir === 'out' ? ICON.up : ICON.down}</span><div class="xmain"><div class="xtitle"></div><div class="xsub"></div></div><div class="xact"></div></div><div class="bar"><i></i></div>`;
+      e.r = {title: e.querySelector('.xtitle'), sub: e.querySelector('.xsub'), act: e.querySelector('.xact'), fill: e.querySelector('.bar i')};
+      e.actKey = null; xferEls.set(t.id, e);
+    }
+    const {title, sub, pct} = xferText(t);
+    const cls = 'xfer ' + t.dir + ' st-' + t.state + (['connecting', 'waiting', 'pending'].includes(t.state) ? ' wait' : '') + (['rejected', 'expired', 'cancelled', 'error'].includes(t.state) && !t.done ? ' nobar' : '');
+    if (e.className !== cls) e.className = cls;
+    if (e.r.title.textContent !== title) { e.r.title.textContent = title; e.r.title.title = title; }
+    if (e.r.sub.textContent !== sub) e.r.sub.textContent = sub;
+    e.r.fill.style.width = Math.min(100, pct).toFixed(1) + '%';
+    const active = ['connecting', 'waiting', 'transferring'].includes(t.state);
+    const key = active ? 'cancel' : (t.state === 'pending' ? 'answer' : (t.dir === 'in' && t.state === 'done' ? 'open' : ''));
+    if (e.actKey !== key) {
+      e.actKey = key; e.r.act.innerHTML = '';
+      const mk = (label, cls2, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn sm ' + cls2; b.textContent = label; b.onclick = fn; e.r.act.appendChild(b); };
+      if (key === 'cancel') mk('Annuler', 'danger', () => api('/api/cancel', {id: t.id}).catch(err => toast(err.message, 'err')));
+      if (key === 'answer') mk('Répondre', 'primary', () => { shownIn = null; renderIncoming(true); });
+      if (key === 'open') mk('Ouvrir', '', () => api('/api/open', {id: t.id}).catch(err => toast(err.message, 'err')));
+    }
+    // ordre : plus récent en haut
+    const want = prev ? prev.nextSibling : box.firstChild;
+    if (want !== e) box.insertBefore(e, want);
+    prev = e;
+  }
+  for (const [id, e] of xferEls) if (!seen.has(id)) { e.remove(); xferEls.delete(id); }
+}
+$('#clearDone').onclick = () => api('/api/clear').catch(err => toast(err.message, 'err'));
+$('#openDir').onclick = () => api('/api/open', {}).catch(err => toast(err.message, 'err'));
+
+// ------------------------------------------------------------ demande entrante
+let shownIn = null, titleTimer = null, dismissed = new Set();
+let actx = null;
+function beep(){
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const now = actx.currentTime;
+    [0, .18].forEach((d, k) => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.frequency.value = k ? 1046 : 784; g.gain.setValueAtTime(0.0001, now + d);
+      g.gain.exponentialRampToValueAtTime(0.18, now + d + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, now + d + 0.3);
+      o.connect(g).connect(actx.destination); o.start(now + d); o.stop(now + d + 0.32);
+    });
+  } catch {}
+}
+function renderIncoming(force){
+  const pend = (state.transfers || []).filter(t => t.dir === 'in' && t.state === 'pending');
+  const t = pend.find(x => !dismissed.has(x.id) || force) || null;
+  const m = $('#mIn');
+  if (!t) {
+    if (shownIn) { m.hidden = true; shownIn = null; }
+    if (titleTimer && !pend.length) { clearInterval(titleTimer); titleTimer = null; document.title = 'CableDrop'; }
+    return;
+  }
+  if (force) dismissed.delete(t.id);
+  if (shownIn !== t.id) {
+    shownIn = t.id; m.hidden = false;
+    $('#inTitle').textContent = t.peer_name + ' veut vous envoyer ' + (t.count === 1 ? 'un fichier' : 'des fichiers');
+    $('#inSummary').textContent = plural(t.count, 'fichier', 'fichiers') + ' · ' + fmtSize(t.total) + (t.kind === 'wifi' ? ' · via Wi-Fi' : (t.kind === 'cable' || t.link_local ? ' · par le câble' : ''));
+    $('#inList').innerHTML = (t.preview || []).map(p => `<li title="${esc(p)}">${esc(p)}</li>`).join('') + (t.count > (t.preview || []).length ? `<li class="muted">… et ${nf0.format(t.count - t.preview.length)} autres</li>` : '');
+    $('#inDest').textContent = t.dest_dir;
+    $('#inSpace').innerHTML = (t.free_space >= 0 && t.total > t.free_space) ? `<div class="warnline">Espace disque insuffisant : ${fmtSize(t.free_space)} libres pour ${fmtSize(t.total)}.</div>` : '';
+    beep(); $('#inYes').focus();
+    if (!titleTimer) { let on = false; titleTimer = setInterval(() => { on = !on; document.title = on ? '📥 Demande de fichiers' : 'CableDrop'; }, 900); }
+  }
+  $('#inTimer').textContent = 'Refus automatique dans ' + fmtDur(t.expires_in);
+}
+async function answer(accept){
+  const id = shownIn; if (!id) return;
+  $('#inYes').disabled = $('#inNo').disabled = true;
+  try { await api('/api/answer', {id, accept}); }
+  catch (err) { toast(err.message, 'err'); }
+  finally { $('#inYes').disabled = $('#inNo').disabled = false; dismissed.add(id); $('#mIn').hidden = true; shownIn = null; if (state) renderIncoming(); }
+}
+$('#inYes').onclick = () => answer(true);
+$('#inNo').onclick = () => answer(false);
+
+// ------------------------------------------------------------ réglages
+function openSettings(){
+  $('#setName').value = state ? state.me.name : '';
+  $('#setDir').value = state ? state.me.download_dir : '';
+  $('#setInfo').textContent = state ? `CableDrop ${state.version} · port de transfert ${state.me.port}` : '';
+  $('#mSet').hidden = false; $('#setName').focus();
+}
+$('#btnSettings').onclick = openSettings;
+$('#setCancel').onclick = () => { $('#mSet').hidden = true; };
+$('#setBrowse').onclick = async () => {
+  const b = $('#setBrowse'); b.disabled = true; b.textContent = 'Fenêtre ouverte…';
+  try { const r = await api('/api/pick-dir'); if (r.path) $('#setDir').value = r.path; }
+  catch (err) { toast(err.message, 'err'); }
+  finally { b.disabled = false; b.textContent = 'Parcourir…'; }
+};
+$('#setForm').onsubmit = async e => {
+  e.preventDefault();
+  try { await api('/api/settings', {name: $('#setName').value, download_dir: $('#setDir').value}); $('#mSet').hidden = true; toast('Réglages enregistrés'); }
+  catch (err) { toast(err.message, 'err'); }
+};
+$('#manualForm').onsubmit = async e => {
+  e.preventDefault();
+  const v = $('#manualIP').value.trim(); if (!v) return;
+  try { const r = await api('/api/peer', {ip: v}); $('#manualIP').value = ''; toast('Recherche de CableDrop sur ' + r.ip + '…'); }
+  catch (err) { toast(err.message, 'err'); }
+};
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (!$('#mSet').hidden) $('#mSet').hidden = true; else if (shownIn) { dismissed.add(shownIn); $('#mIn').hidden = true; shownIn = null; } } });
+
+connect();
+</script>
+</body>
+</html>

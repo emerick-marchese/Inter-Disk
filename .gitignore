@@ -1,0 +1,5 @@
+# Programmes compilés (générés par ./build.sh)
+dist/
+/cabledrop
+/CableDrop
+*.exe
