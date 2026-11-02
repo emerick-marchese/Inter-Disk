@@ -6,8 +6,11 @@ une demande : il clique **Accepter**, et c'est tout.
 
 ## ⬇️ Télécharger
 
-**[Télécharger CableDrop-Setup.exe](https://github.com/emerick-marchese/Inter-Disk/raw/main/CableDrop-Setup.exe)**
+**[Télécharger CableDrop-Setup.exe](https://github.com/emerick-marchese/Inter-Disk/releases/latest/download/CableDrop-Setup.exe)**
 (Windows 10 / 11, 64 bits)
+
+Toutes les versions (Windows portable, macOS, Linux) sont sur la page
+**[Releases](https://github.com/emerick-marchese/Inter-Disk/releases/latest)**.
 
 L'installateur s'occupe de tout : il installe CableDrop, crée les raccourcis (menu
 Démarrer et Bureau) et **règle le pare-feu Windows**. Installez-le **sur les deux PC**.
@@ -77,8 +80,10 @@ Cat 5e ou mieux.
 
 ## Version portable (sans installation)
 
-Si vous ne voulez pas installer CableDrop, compilez la version portable (voir
-« Compiler soi-même » plus bas), puis lancez directement `CableDrop.exe`. Au
+Si vous ne voulez pas installer CableDrop, téléchargez
+`CableDrop-Windows-x64-portable.zip` sur la page
+[Releases](https://github.com/emerick-marchese/Inter-Disk/releases/latest),
+décompressez-le, puis lancez directement `CableDrop.exe`. Au
 premier lancement, le pare-feu Windows demande une autorisation : cochez
 **« Réseaux privés » ET « Réseaux publics »** (un câble direct est vu comme
 « Réseau non identifié », c'est-à-dire public). Si vous avez cliqué trop vite,
@@ -86,6 +91,9 @@ double-cliquez sur `autoriser-pare-feu.bat`.
 
 ## macOS
 
+Téléchargez `CableDrop-macOS-AppleSilicon.tar.gz` (Mac M1 et plus récents) ou
+`CableDrop-macOS-Intel.tar.gz` sur la page
+[Releases](https://github.com/emerick-marchese/Inter-Disk/releases/latest).
 Le Mac attribue lui aussi une adresse 169.254.x.x automatiquement sur un câble direct.
 Au premier lancement, faites un clic droit sur le programme, puis **Ouvrir**
 (sécurité Gatekeeper). Dans un Terminal, vous pouvez aussi lancer :
@@ -96,6 +104,8 @@ chmod +x CableDrop-macos && xattr -d com.apple.quarantine CableDrop-macos
 
 ## Linux
 
+Téléchargez `CableDrop-Linux-x64.tar.gz` sur la page
+[Releases](https://github.com/emerick-marchese/Inter-Disk/releases/latest).
 NetworkManager ne donne pas d'adresse automatique sur un câble direct. Dans les
 paramètres de la connexion filaire, réglez **IPv4** sur **« Lien local uniquement »**,
 ou bien exécutez :
@@ -151,5 +161,5 @@ pour l'installateur (`sudo apt install nsis` sous Linux). Ensuite, lancez :
 ```
 
 Le script crée dans `dist/` les programmes pour Windows (installateur et versions
-portables), macOS et Linux. Il met aussi à jour `CableDrop-Setup.exe` à la racine du
-dépôt.
+portables), macOS et Linux. Pour les publier dans une Release GitHub, lancez
+`./release.sh` (nécessite la commande `gh`, connectée à GitHub).

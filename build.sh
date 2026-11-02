@@ -30,7 +30,6 @@ done
 if command -v makensis >/dev/null; then
   echo "→ installateur Windows"
   makensis -V2 -DVERSION="$VERSION" -DASSETS="$PWD/assets" -DBINDIR="$PWD/dist/tmp/win" -DOUTFILE="$PWD/dist/CableDrop-Setup.exe" installer/CableDrop.nsi
-  cp dist/CableDrop-Setup.exe CableDrop-Setup.exe   # copie publiée dans le dépôt GitHub
 else
   echo "⚠ makensis introuvable : installateur non généré (sudo apt install nsis)"
 fi

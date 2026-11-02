@@ -8,10 +8,14 @@ Voir README.md pour l'utilisation.
 - Toutes les modifications sont commitées et **poussées directement sur `main`**
   (`git push origin main`), sans branche intermédiaire ni pull request, sauf demande
   contraire explicite.
-- `CableDrop-Setup.exe` (à la racine) est l'installateur Windows téléchargé par les
-  utilisateurs depuis GitHub. Après toute modification du code, augmentez `appVersion`
-  dans `main.go`, lancez `./build.sh` (il régénère `CableDrop-Setup.exe`), puis commitez
-  l'installateur avec le code.
+- Les programmes (dont l'installateur `CableDrop-Setup.exe`) sont publiés dans les
+  **Releases GitHub**, jamais commités dans le dépôt. Après toute modification du code :
+  augmentez `appVersion` dans `main.go`, lancez `./build.sh`, commitez et poussez sur
+  `main`, puis lancez `./release.sh` (ajoutez un fichier de notes en argument si besoin).
+  Le README pointe vers `releases/latest/download/CableDrop-Setup.exe`.
+- `gh` fonctionne uniquement via l'API REST (`gh api repos/...`) dans les sessions
+  Claude Code : `gh release` (GraphQL) est bloqué. C'est pourquoi `release.sh` utilise
+  `gh api`.
 
 ## Développement
 
