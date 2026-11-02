@@ -28,7 +28,7 @@ import (
 
 const (
 	appName    = "Inter Disk"
-	appVersion = "2.1.0"
+	appVersion = "2.1.1"
 	// Ancien nom de l'application (versions 1.x), pour reprendre ses réglages.
 	legacyName = "CableDrop"
 )
