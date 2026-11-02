@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CableDrop</title>
+<title>Inter Disk</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%232563eb'/%3E%3Cpath d='M9 4v4M15 4v4M7 8h10v3a5 5 0 0 1-10 0zM12 16v4' stroke='white' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
 :root{
@@ -22,6 +22,8 @@
 }}
 *{box-sizing:border-box}
 html,body{margin:0}
+body{user-select:none;-webkit-user-select:none;cursor:default}
+code,input,.xsub,.flist{user-select:text;-webkit-user-select:text}
 body{font:15px/1.5 "Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
 code{font:13px/1.4 ui-monospace,"Cascadia Mono",Consolas,Menlo,monospace;background:var(--hover);padding:1px 6px;border-radius:6px;word-break:break-all}
 .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 56px}
@@ -163,20 +165,17 @@ input[type=text]{font:inherit;color:var(--text);background:var(--card);border:1p
 .toast{background:var(--text);color:var(--bg);padding:11px 15px;border-radius:12px;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);animation:tin .2s ease-out}
 .toast.err{background:var(--err);color:#fff}
 @keyframes tin{from{transform:translateY(8px);opacity:0}}
-#offline{position:fixed;top:0;left:0;right:0;background:var(--err);color:#fff;text-align:center;padding:10px 16px;font-weight:600;z-index:70}
-#offline[hidden]{display:none}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-<div id="offline" hidden>CableDrop ne répond plus — la fenêtre du programme a-t-elle été fermée ? Relancez CableDrop.</div>
 <div id="dragPage" hidden>Déposez pour ajouter à l'envoi</div>
 
 <div class="wrap">
   <header>
     <div class="brand">
       <div class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v4M15 3v4M7 7h10v4a5 5 0 0 1-10 0zM12 16v5"/></svg></div>
-      <div>CableDrop<small>Transfert de fichiers entre deux PC, par câble ou Wi-Fi</small></div>
+      <div>Inter Disk<small>Transfert de fichiers entre deux PC, par câble ou Wi-Fi</small></div>
     </div>
     <div class="me">Ce PC : <b id="myName">…</b><button class="btn ghost sm" id="btnSettings" type="button">Réglages</button></div>
   </header>
@@ -198,12 +197,12 @@ input[type=text]{font:inherit;color:var(--text);background:var(--card);border:1p
       <details class="help" id="help">
         <summary>L'autre PC n'apparaît pas ?</summary>
         <ol>
-          <li>Lancez <b>CableDrop sur les deux PC</b>.</li>
+          <li>Lancez <b>Inter Disk sur les deux PC</b>.</li>
           <li>Vérifiez que le <b>câble RJ45</b> est bien branché des deux côtés (les voyants de la prise doivent s'allumer).</li>
           <li>Sans box entre les deux, <b>Windows met jusqu'à 1 minute</b> à donner une adresse automatique (169.254.x.x) au câble. Patientez un peu.</li>
-          <li><b>Pare-feu Windows</b> : déjà réglé si CableDrop a été installé avec <code>CableDrop-Setup.exe</code>. Avec la version portable, autorisez CableDrop en cochant aussi « <b>Réseaux publics</b> » (un câble direct est vu comme « Réseau non identifié »), ou lancez <code>autoriser-pare-feu.bat</code>.</li>
+          <li><b>Pare-feu Windows</b> : déjà réglé si Inter Disk a été installé avec <code>InterDisk-Setup.exe</code>. Avec la version portable, autorisez Inter Disk en cochant aussi « <b>Réseaux publics</b> » (un câble direct est vu comme « Réseau non identifié »), ou lancez <code>autoriser-pare-feu.bat</code>.</li>
           <li><b>En mode Wi-Fi</b> : les deux PC doivent être connectés au même réseau (même box). Les réseaux « invités » ou publics bloquent souvent les échanges entre appareils.</li>
-          <li>En dernier recours, saisissez ci-dessous l'adresse affichée en haut de la page CableDrop de l'autre PC.</li>
+          <li>En dernier recours, saisissez ci-dessous l'adresse affichée en haut de la fenêtre Inter Disk de l'autre PC.</li>
         </ol>
       </details>
       <form class="manual" id="manualForm" autocomplete="off">
@@ -216,14 +215,12 @@ input[type=text]{font:inherit;color:var(--text);background:var(--card);border:1p
       <h2><span class="step">2</span>Fichiers à envoyer</h2>
       <div class="drop" id="drop">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
-        <p>Glissez vos fichiers ou dossiers ici</p>
+        <p>Glissez vos fichiers ou dossiers dans cette fenêtre</p>
         <div class="row">
           <button class="btn" type="button" id="pickFiles">Choisir des fichiers</button>
           <button class="btn" type="button" id="pickDir">Choisir un dossier</button>
         </div>
       </div>
-      <input type="file" id="inFiles" multiple hidden>
-      <input type="file" id="inDir" webkitdirectory hidden>
       <div class="sel-box" id="selBox" hidden>
         <div class="sel-head"><span id="selSummary"></span><button class="btn ghost sm" type="button" id="selClear">Tout retirer</button></div>
         <ul class="sel-list" id="selList"></ul>
@@ -299,19 +296,18 @@ const ICON = {
   down: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>',
 };
 
-async function api(path, body){
-  const r = await fetch(path, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CableDrop': '1'}, body: JSON.stringify(body || {})});
-  const t = await r.text(); let j = {};
-  try { j = JSON.parse(t); } catch { j = {error: t}; }
-  if (!r.ok) throw new Error(j.error || t || r.statusText);
-  return j;
-}
+// Fonctions du programme Inter Disk (Go), appelées directement depuis la fenêtre.
+const Go = new Proxy({}, {get: (_, m) => (...args) => window.go.main.App[m](...args)});
+const errText = e => { const s = String((e && e.message) || e || 'Erreur inconnue'); return s.charAt(0).toUpperCase() + s.slice(1); };
 function toast(msg, kind){
   const el = document.createElement('div'); el.className = 'toast' + (kind === 'err' ? ' err' : ''); el.textContent = msg;
   $('#toasts').appendChild(el); setTimeout(() => el.remove(), kind === 'err' ? 7000 : 4000);
 }
+const fail = e => toast(errText(e), 'err');
 
-let state = null, selectedPeer = null, selection = [], peersSig = '';
+let state = null, selectedPeer = null, peersSig = '', selSig = '';
+let selection = []; // éléments choisis : {path, name, is_dir, count, size}
+let sending = false;
 let mode = 'cable', modePending = 0;
 const MODE_NAME = {cable: 'câble', wifi: 'Wi-Fi'};
 const modeRoute = p => mode === 'wifi' ? p.wifi : p.cable;
@@ -319,29 +315,15 @@ function setMode(m){
   if (m === mode) return;
   mode = m; modePending = Date.now(); peersSig = ''; selSig = '';
   if (state) { renderMode(); renderLink(); renderPeers(); renderSend(); }
-  api('/api/settings', {route_mode: m}).catch(err => toast(err.message, 'err'));
+  Go.SetMode(m).catch(fail);
 }
 function renderMode(){
   for (const b of document.querySelectorAll('#modeSeg button')) b.setAttribute('aria-checked', String(b.dataset.mode === mode));
 }
 $('#modeSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setMode(b.dataset.mode); });
-const waiters = new Map();
-const activeUploads = new Set();
 
 // ------------------------------------------------------------ état en direct
-function connect(){
-  const es = new EventSource('/api/events');
-  let offTimer = null;
-  es.onmessage = e => { clearTimeout(offTimer); offTimer = null; state = JSON.parse(e.data); $('#offline').hidden = true; onState(); };
-  // n'affiche l'alerte que si la reconnexion automatique échoue
-  es.onerror = () => { if (!offTimer) offTimer = setTimeout(() => { $('#offline').hidden = false; }, 4000); };
-}
 function onState(){
-  for (const [id, res] of waiters) {
-    const t = state.transfers.find(x => x.id === id);
-    if (!t) { res('gone'); waiters.delete(id); }
-    else if (t.state !== 'connecting' && t.state !== 'waiting') { res(t.state); waiters.delete(id); }
-  }
   // le mode enregistré fait foi, sauf juste après un clic (le temps que le réglage soit pris en compte)
   if (Date.now() - modePending > 2000 && state.me.route_mode && state.me.route_mode !== mode) { mode = state.me.route_mode; peersSig = ''; selSig = ''; }
   renderMode();
@@ -390,7 +372,7 @@ function renderPeers(){
   if (sig === peersSig) return; peersSig = sig;
   const box = $('#peers');
   if (!peers.length) {
-    box.innerHTML = `<div class="searching"><span class="spin"></span><div><b>Recherche de l'autre PC…</b><br><span class="muted small">${mode === 'wifi' ? 'Lancez CableDrop sur l\'autre PC, connecté au même réseau Wi-Fi.' : 'Lancez CableDrop sur l\'autre PC, relié par le câble.'}</span></div></div>`;
+    box.innerHTML = `<div class="searching"><span class="spin"></span><div><b>Recherche de l'autre PC…</b><br><span class="muted small">${mode === 'wifi' ? 'Lancez Inter Disk sur l\'autre PC, connecté au même réseau Wi-Fi.' : 'Lancez Inter Disk sur l\'autre PC, relié par le câble.'}</span></div></div>`;
     return;
   }
   box.innerHTML = peers.map(p => `<button type="button" class="peer ${p.id === selectedPeer ? 'sel' : ''} ${modeRoute(p) ? '' : 'off'}" data-id="${esc(p.id)}" aria-pressed="${p.id === selectedPeer}">
@@ -404,25 +386,16 @@ $('#peers').addEventListener('click', e => {
 });
 
 // ------------------------------------------------------------ sélection
-function groups(){
-  const m = new Map();
-  for (const f of selection) {
-    const parts = f.path.split('/'); const top = parts[0];
-    const g = m.get(top) || {name: top, dir: false, count: 0, size: 0};
-    g.count++; g.size += f.file.size; if (parts.length > 1) g.dir = true; m.set(top, g);
-  }
-  return [...m.values()];
-}
-function totalSize(list){ return list.reduce((s, f) => s + f.file.size, 0); }
-let selSig = '';
+const selCount = () => selection.reduce((s, i) => s + i.count, 0);
+const selSize = () => selection.reduce((s, i) => s + i.size, 0);
 function renderSend(){
-  const gs = groups(); const sig = gs.map(g => g.name + ':' + g.count + ':' + g.size).join('|');
+  const sig = selection.map(i => i.path + ':' + i.count + ':' + i.size).join('|');
   if (sig !== selSig) {
     selSig = sig;
     $('#selBox').hidden = !selection.length;
-    $('#selSummary').textContent = plural(selection.length, 'fichier', 'fichiers') + ' · ' + fmtSize(totalSize(selection));
-    $('#selList').innerHTML = gs.slice(0, 300).map(g => `<li><span class="fico">${g.dir ? ICON.folder : ICON.file}</span><span class="nm" title="${esc(g.name)}">${esc(g.name)}</span><span class="sz">${g.dir ? plural(g.count, 'fichier', 'fichiers') + ' · ' : ''}${fmtSize(g.size)}</span><button type="button" class="x" data-top="${esc(g.name)}" title="Retirer" aria-label="Retirer ${esc(g.name)}">×</button></li>`).join('')
-      + (gs.length > 300 ? `<li class="muted">… et ${gs.length - 300} autres éléments</li>` : '');
+    $('#selSummary').textContent = plural(selCount(), 'fichier', 'fichiers') + ' · ' + fmtSize(selSize());
+    $('#selList').innerHTML = selection.slice(0, 300).map((it, k) => `<li title="${esc(it.path)}"><span class="fico">${it.is_dir ? ICON.folder : ICON.file}</span><span class="nm">${esc(it.name)}</span><span class="sz">${it.is_dir ? plural(it.count, 'fichier', 'fichiers') + ' · ' : ''}${fmtSize(it.size)}</span><button type="button" class="x" data-k="${k}" title="Retirer" aria-label="Retirer ${esc(it.name)}">×</button></li>`).join('')
+      + (selection.length > 300 ? `<li class="muted">… et ${selection.length - 300} autres éléments</li>` : '');
   }
   const btn = $('#sendBtn');
   const peer = state && (state.peers || []).find(p => p.id === selectedPeer);
@@ -432,10 +405,11 @@ function renderSend(){
     hint = mode === 'wifi' ? `${peer.name} n'est pas visible en Wi-Fi.` : `${peer.name} n'est pas relié par câble.`;
     if (!(other === 'wifi' ? peer.wifi : peer.cable)) hint += mode === 'wifi' ? ' Les deux PC doivent être sur le même réseau.' : ' Vérifiez le câble.';
   }
-  if (!selection.length) { btn.disabled = true; btn.textContent = 'Envoyer'; }
+  if (sending) { btn.disabled = true; btn.textContent = 'Préparation de l\'envoi…'; }
+  else if (!selection.length) { btn.disabled = true; btn.textContent = 'Envoyer'; }
   else if (!peer) { btn.disabled = true; btn.textContent = 'Choisissez d\'abord le PC destinataire'; }
   else if (!modeRoute(peer)) { btn.disabled = true; btn.textContent = mode === 'wifi' ? 'Pas de liaison Wi-Fi avec ce PC' : 'Pas de liaison par câble avec ce PC'; }
-  else { btn.disabled = false; btn.textContent = `Envoyer ${plural(selection.length, 'fichier', 'fichiers')} (${fmtSize(totalSize(selection))}) à ${peer.name} par ${MODE_NAME[mode]}`; }
+  else { btn.disabled = false; btn.textContent = `Envoyer ${plural(selCount(), 'fichier', 'fichiers')} (${fmtSize(selSize())}) à ${peer.name} par ${MODE_NAME[mode]}`; }
   $('#sendHint').hidden = !hint;
   if (hint) {
     $('#sendHintText').textContent = hint;
@@ -447,77 +421,43 @@ function renderSend(){
 $('#sendHintBtn').onclick = () => setMode(mode === 'wifi' ? 'cable' : 'wifi');
 $('#selList').addEventListener('click', e => {
   const b = e.target.closest('.x'); if (!b) return;
-  const top = b.dataset.top; selection = selection.filter(f => f.path.split('/')[0] !== top); renderSend();
+  selection.splice(Number(b.dataset.k), 1); renderSend();
 });
 $('#selClear').onclick = () => { selection = []; renderSend(); };
 
-function addFiles(list){
-  if (!list.length) { toast('Aucun fichier trouvé (dossier vide ?)'); return; }
-  const idx = new Map(selection.map((f, i) => [f.path, i]));
-  for (const f of list) { if (idx.has(f.path)) selection[idx.get(f.path)] = f; else { idx.set(f.path, selection.length); selection.push(f); } }
+function addItems(items){
+  if (!items || !items.length) return;
+  for (const it of items) {
+    if (!it.count) { toast(`« ${it.name} » est vide : rien à envoyer.`); continue; }
+    const k = selection.findIndex(x => x.path.toLowerCase() === it.path.toLowerCase());
+    if (k >= 0) selection[k] = it; else selection.push(it);
+  }
   renderSend();
 }
-$('#pickFiles').onclick = () => $('#inFiles').click();
-$('#pickDir').onclick = () => $('#inDir').click();
-$('#inFiles').onchange = e => { addFiles([...e.target.files].map(f => ({path: f.name, file: f}))); e.target.value = ''; };
-$('#inDir').onchange = e => { addFiles([...e.target.files].map(f => ({path: f.webkitRelativePath || f.name, file: f}))); e.target.value = ''; };
+$('#pickFiles').onclick = () => Go.PickFiles().then(addItems, fail);
+$('#pickDir').onclick = () => Go.PickFolder().then(addItems, fail);
 
-// Glisser-déposer (fichiers et dossiers), n'importe où sur la page.
-function readEntries(reader){ return new Promise((res, rej) => reader.readEntries(res, rej)); }
-async function walk(entry, prefix, out){
-  if (entry.isFile) {
-    const f = await new Promise((res, rej) => entry.file(res, rej));
-    out.push({path: prefix + entry.name, file: f});
-  } else if (entry.isDirectory) {
-    const reader = entry.createReader();
-    for (;;) { const batch = await readEntries(reader); if (!batch.length) break; for (const ch of batch) await walk(ch, prefix + entry.name + '/', out); }
-  }
-}
+// Glisser-déposer : la fenêtre reçoit les chemins des fichiers et dossiers.
 let dragDepth = 0;
 const hasFiles = e => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
-window.addEventListener('dragenter', e => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth++; $('#dragPage').hidden = false; $('#drop').classList.add('over'); });
-window.addEventListener('dragover', e => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
-window.addEventListener('dragleave', e => { if (!hasFiles(e)) return; if (--dragDepth <= 0) { dragDepth = 0; $('#dragPage').hidden = true; $('#drop').classList.remove('over'); } });
-window.addEventListener('drop', async e => {
-  if (!hasFiles(e)) return; e.preventDefault(); dragDepth = 0; $('#dragPage').hidden = true; $('#drop').classList.remove('over');
-  const items = [...e.dataTransfer.items].filter(i => i.kind === 'file');
-  const entries = items.map(i => i.webkitGetAsEntry ? i.webkitGetAsEntry() : null);
-  const plain = [...e.dataTransfer.files];
-  if (!entries.length || entries.some(x => !x)) { addFiles(plain.map(f => ({path: f.name, file: f}))); return; }
-  const out = [];
-  try { for (const en of entries) await walk(en, '', out); }
-  catch (err) { toast('Lecture du dossier impossible : ' + err.message, 'err'); }
-  addFiles(out);
-});
+const hideDrag = () => { dragDepth = 0; $('#dragPage').hidden = true; $('#drop').classList.remove('over'); };
+window.addEventListener('dragenter', e => { if (!hasFiles(e)) return; dragDepth++; $('#dragPage').hidden = false; $('#drop').classList.add('over'); });
+window.addEventListener('dragleave', e => { if (!hasFiles(e)) return; if (--dragDepth <= 0) hideDrag(); });
+window.addEventListener('drop', hideDrag);
+window.runtime.OnFileDrop((x, y, paths) => {
+  hideDrag();
+  if (paths && paths.length) Go.Describe(paths).then(addItems, fail);
+}, false);
 
 // ------------------------------------------------------------ envoi
 $('#sendBtn').onclick = async () => {
   const peer = (state.peers || []).find(p => p.id === selectedPeer);
-  if (!peer || !selection.length || !modeRoute(peer)) return;
-  const files = selection.slice();
-  selection = []; renderSend();
-  let id;
-  try {
-    id = (await api('/api/send', {peer_id: peer.id, mode, files: files.map(f => ({path: f.path, size: f.file.size, mtime: f.file.lastModified || 0}))})).id;
-  } catch (err) { toast(err.message, 'err'); selection = files.concat(selection); renderSend(); return; }
-  activeUploads.add(id);
-  try {
-    const st = await new Promise(res => waiters.set(id, res));
-    if (st !== 'transferring') return;
-    for (let i = 0; i < files.length; i++) {
-      if (!files[i].file.size) continue; // fichier vide : rien à transmettre
-      let res;
-      try {
-        res = await fetch(`/api/upload?id=${encodeURIComponent(id)}&i=${i}`, {method: 'POST', headers: {'X-CableDrop': '1', 'Content-Type': 'application/octet-stream'}, body: files[i].file});
-      } catch (err) {
-        await api('/api/cancel', {id, reason: `Lecture impossible de « ${files[i].path} » (fichier déplacé, supprimé ou modifié ?).`}).catch(() => {});
-        return;
-      }
-      if (!res.ok) return; // l'erreur est affichée dans la liste des transferts
-    }
-  } finally { activeUploads.delete(id); }
+  if (!peer || !selection.length || !modeRoute(peer) || sending) return;
+  sending = true; renderSend();
+  try { await Go.Send(peer.id, mode, selection.map(i => i.path)); selection = []; }
+  catch (e) { fail(e); }
+  finally { sending = false; selSig = ''; renderSend(); }
 };
-window.addEventListener('beforeunload', e => { if (activeUploads.size) { e.preventDefault(); e.returnValue = ''; } });
 
 // ------------------------------------------------------------ transferts
 const xferEls = new Map();
@@ -568,9 +508,9 @@ function renderXfers(){
     if (e.actKey !== key) {
       e.actKey = key; e.r.act.innerHTML = '';
       const mk = (label, cls2, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn sm ' + cls2; b.textContent = label; b.onclick = fn; e.r.act.appendChild(b); };
-      if (key === 'cancel') mk('Annuler', 'danger', () => api('/api/cancel', {id: t.id}).catch(err => toast(err.message, 'err')));
+      if (key === 'cancel') mk('Annuler', 'danger', () => Go.Cancel(t.id).catch(fail));
       if (key === 'answer') mk('Répondre', 'primary', () => { shownIn = null; renderIncoming(true); });
-      if (key === 'open') mk('Ouvrir', '', () => api('/api/open', {id: t.id}).catch(err => toast(err.message, 'err')));
+      if (key === 'open') mk('Ouvrir', '', () => Go.OpenFolder(t.id).catch(fail));
     }
     // ordre : plus récent en haut
     const want = prev ? prev.nextSibling : box.firstChild;
@@ -579,33 +519,16 @@ function renderXfers(){
   }
   for (const [id, e] of xferEls) if (!seen.has(id)) { e.remove(); xferEls.delete(id); }
 }
-$('#clearDone').onclick = () => api('/api/clear').catch(err => toast(err.message, 'err'));
-$('#openDir').onclick = () => api('/api/open', {}).catch(err => toast(err.message, 'err'));
+$('#clearDone').onclick = () => Go.ClearFinished().catch(fail);
+$('#openDir').onclick = () => Go.OpenFolder('').catch(fail);
 
 // ------------------------------------------------------------ demande entrante
-let shownIn = null, titleTimer = null, dismissed = new Set();
-let actx = null;
-function beep(){
-  try {
-    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-    const now = actx.currentTime;
-    [0, .18].forEach((d, k) => {
-      const o = actx.createOscillator(), g = actx.createGain();
-      o.frequency.value = k ? 1046 : 784; g.gain.setValueAtTime(0.0001, now + d);
-      g.gain.exponentialRampToValueAtTime(0.18, now + d + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, now + d + 0.3);
-      o.connect(g).connect(actx.destination); o.start(now + d); o.stop(now + d + 0.32);
-    });
-  } catch {}
-}
+let shownIn = null, dismissed = new Set();
 function renderIncoming(force){
   const pend = (state.transfers || []).filter(t => t.dir === 'in' && t.state === 'pending');
   const t = pend.find(x => !dismissed.has(x.id) || force) || null;
   const m = $('#mIn');
-  if (!t) {
-    if (shownIn) { m.hidden = true; shownIn = null; }
-    if (titleTimer && !pend.length) { clearInterval(titleTimer); titleTimer = null; document.title = 'CableDrop'; }
-    return;
-  }
+  if (!t) { if (shownIn) { m.hidden = true; shownIn = null; } return; }
   if (force) dismissed.delete(t.id);
   if (shownIn !== t.id) {
     shownIn = t.id; m.hidden = false;
@@ -614,16 +537,15 @@ function renderIncoming(force){
     $('#inList').innerHTML = (t.preview || []).map(p => `<li title="${esc(p)}">${esc(p)}</li>`).join('') + (t.count > (t.preview || []).length ? `<li class="muted">… et ${nf0.format(t.count - t.preview.length)} autres</li>` : '');
     $('#inDest').textContent = t.dest_dir;
     $('#inSpace').innerHTML = (t.free_space >= 0 && t.total > t.free_space) ? `<div class="warnline">Espace disque insuffisant : ${fmtSize(t.free_space)} libres pour ${fmtSize(t.total)}.</div>` : '';
-    beep(); $('#inYes').focus();
-    if (!titleTimer) { let on = false; titleTimer = setInterval(() => { on = !on; document.title = on ? '📥 Demande de fichiers' : 'CableDrop'; }, 900); }
+    $('#inYes').focus();
   }
   $('#inTimer').textContent = 'Refus automatique dans ' + fmtDur(t.expires_in);
 }
 async function answer(accept){
   const id = shownIn; if (!id) return;
   $('#inYes').disabled = $('#inNo').disabled = true;
-  try { await api('/api/answer', {id, accept}); }
-  catch (err) { toast(err.message, 'err'); }
+  try { await Go.Answer(id, accept); }
+  catch (e) { fail(e); }
   finally { $('#inYes').disabled = $('#inNo').disabled = false; dismissed.add(id); $('#mIn').hidden = true; shownIn = null; if (state) renderIncoming(); }
 }
 $('#inYes').onclick = () => answer(true);
@@ -633,31 +555,29 @@ $('#inNo').onclick = () => answer(false);
 function openSettings(){
   $('#setName').value = state ? state.me.name : '';
   $('#setDir').value = state ? state.me.download_dir : '';
-  $('#setInfo').textContent = state ? `CableDrop ${state.version} · port de transfert ${state.me.port}` : '';
+  $('#setInfo').textContent = state ? `Inter Disk ${state.version} · port de transfert ${state.me.port}` : '';
   $('#mSet').hidden = false; $('#setName').focus();
 }
 $('#btnSettings').onclick = openSettings;
 $('#setCancel').onclick = () => { $('#mSet').hidden = true; };
-$('#setBrowse').onclick = async () => {
-  const b = $('#setBrowse'); b.disabled = true; b.textContent = 'Fenêtre ouverte…';
-  try { const r = await api('/api/pick-dir'); if (r.path) $('#setDir').value = r.path; }
-  catch (err) { toast(err.message, 'err'); }
-  finally { b.disabled = false; b.textContent = 'Parcourir…'; }
-};
+$('#setBrowse').onclick = () => Go.PickDownloadDir().then(p => { if (p) $('#setDir').value = p; }, fail);
 $('#setForm').onsubmit = async e => {
   e.preventDefault();
-  try { await api('/api/settings', {name: $('#setName').value, download_dir: $('#setDir').value}); $('#mSet').hidden = true; toast('Réglages enregistrés'); }
-  catch (err) { toast(err.message, 'err'); }
+  try { await Go.SaveSettings($('#setName').value, $('#setDir').value); $('#mSet').hidden = true; toast('Réglages enregistrés'); }
+  catch (err) { fail(err); }
 };
 $('#manualForm').onsubmit = async e => {
   e.preventDefault();
   const v = $('#manualIP').value.trim(); if (!v) return;
-  try { const r = await api('/api/peer', {ip: v}); $('#manualIP').value = ''; toast('Recherche de CableDrop sur ' + r.ip + '…'); }
-  catch (err) { toast(err.message, 'err'); }
+  try { const ip = await Go.AddPeer(v); $('#manualIP').value = ''; toast('Recherche d\'Inter Disk sur ' + ip + '…'); }
+  catch (err) { fail(err); }
 };
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (!$('#mSet').hidden) $('#mSet').hidden = true; else if (shownIn) { dismissed.add(shownIn); $('#mIn').hidden = true; shownIn = null; } } });
+document.addEventListener('contextmenu', e => { if (!e.target.closest('input')) e.preventDefault(); });
 
-connect();
+// ------------------------------------------------------------ démarrage
+window.runtime.EventsOn('state', s => { state = s; onState(); });
+Go.State().then(s => { if (!state) { state = s; onState(); } }, fail);
 </script>
 </body>
 </html>

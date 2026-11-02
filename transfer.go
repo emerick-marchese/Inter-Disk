@@ -33,9 +33,10 @@ const (
 )
 
 type FileEntry struct {
-	Path  string `json:"path"`
+	Path  string `json:"path"` // chemin relatif envoyé à l'autre PC (séparateur « / »)
 	Size  int64  `json:"size"`
 	MTime int64  `json:"mtime,omitempty"` // millisecondes Unix
+	abs   string // chemin complet sur le disque (expéditeur uniquement, jamais transmis)
 }
 
 type Offer struct {
@@ -139,12 +140,6 @@ func (c *countingWriter) Write(p []byte) (int, error) {
 
 // ---------------------------------------------------------------- Transfer
 
-type uploadReq struct {
-	index int
-	body  io.Reader
-	res   chan error
-}
-
 type Transfer struct {
 	ID        string
 	Dir       string // out | in
@@ -178,7 +173,6 @@ type Transfer struct {
 	speed     float64
 
 	decision   chan bool
-	uploads    chan *uploadReq
 	cancelCh   chan struct{}
 	endCh      chan struct{}
 	cancelOnce sync.Once
@@ -188,7 +182,7 @@ type Transfer struct {
 func newTransfer(dir string) *Transfer {
 	return &Transfer{
 		ID: randomID(6), Dir: dir, Created: time.Now(), freeSpace: -1,
-		decision: make(chan bool, 1), uploads: make(chan *uploadReq),
+		decision: make(chan bool, 1),
 		cancelCh: make(chan struct{}), endCh: make(chan struct{}),
 	}
 }
@@ -284,19 +278,6 @@ func (t *Transfer) Answer(accept bool) error {
 	default:
 	}
 	return nil
-}
-
-// Upload est appelé par l'interface web pour chaque fichier à envoyer.
-func (t *Transfer) Upload(i int, body io.Reader) error {
-	req := &uploadReq{index: i, body: body, res: make(chan error, 1)}
-	select {
-	case t.uploads <- req:
-	case <-t.endCh:
-		return errors.New("le transfert est terminé")
-	case <-time.After(idleTimeout):
-		return errors.New("délai dépassé")
-	}
-	return <-req.res
 }
 
 type TransferView struct {
@@ -425,6 +406,18 @@ func (m *TransferManager) Views() []TransferView {
 	return out
 }
 
+// HasActive indique si un transfert est en cours (ou une demande en attente).
+func (m *TransferManager) HasActive() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, t := range m.list {
+		if !isTerminal(t.State()) {
+			return true
+		}
+	}
+	return false
+}
+
 func (m *TransferManager) ClearFinished() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -472,10 +465,10 @@ func (m *TransferManager) StartSend(peer Peer, r Route, files []FileEntry) (*Tra
 	var total int64
 	for _, f := range files {
 		p := strings.Trim(strings.ReplaceAll(f.Path, "\\", "/"), "/")
-		if p == "" || f.Size < 0 {
+		if p == "" || f.Size < 0 || f.abs == "" {
 			return nil, errors.New("liste de fichiers invalide")
 		}
-		clean = append(clean, FileEntry{Path: p, Size: f.Size, MTime: f.MTime})
+		clean = append(clean, FileEntry{Path: p, Size: f.Size, MTime: f.MTime, abs: f.abs})
 		total += f.Size
 	}
 	t := newTransfer("out")
@@ -539,34 +532,26 @@ func (m *TransferManager) runSend(t *Transfer, r Route) {
 	}
 	t.setState(stTransferring, "")
 
+	// Les fichiers sont lus directement sur le disque, par blocs de 1 Mo :
+	// la mémoire utilisée reste la même quelle que soit la taille du fichier.
 	ic := idleConn{conn, idleTimeout}
 	cw := &countingWriter{w: ic, n: &t.done}
 	buf := make([]byte, copyBufferSize)
 	for i, f := range t.Files {
 		t.setCurrent(i)
 		if f.Size == 0 {
-			continue // rien à transmettre, le navigateur n'envoie pas les fichiers vides
+			continue
 		}
-		var req *uploadReq
-		select {
-		case req = <-t.uploads:
-		case <-t.cancelCh:
-			t.fail("")
-			return
-		case <-time.After(idleTimeout):
-			t.fail("Le navigateur n'envoie plus les données (page CableDrop fermée ?).")
+		fh, err := os.Open(f.abs)
+		if err != nil {
+			t.fail("Impossible d'ouvrir « " + f.Path + " » : " + err.Error())
 			return
 		}
-		if req.index != i {
-			req.res <- errors.New("ordre des fichiers inattendu")
-			t.fail("Erreur interne : ordre des fichiers inattendu.")
-			return
-		}
-		n, err := io.CopyBuffer(cw, io.LimitReader(req.body, f.Size), buf)
+		n, err := io.CopyBuffer(cw, io.LimitReader(fh, f.Size), buf)
+		fh.Close()
 		if err == nil && n != f.Size {
-			err = fmt.Errorf("le fichier « %s » a changé depuis sa sélection (%d octets lus sur %d)", f.Path, n, f.Size)
+			err = fmt.Errorf("le fichier « %s » a été modifié ou raccourci pendant l'envoi (%d octets lus sur %d)", f.Path, n, f.Size)
 		}
-		req.res <- err
 		if err != nil {
 			if cw.err != nil {
 				t.fail("Transfert interrompu par l'autre PC (annulé, câble débranché ou PC en veille).")
@@ -656,9 +641,7 @@ func (m *TransferManager) handleIncoming(conn net.Conn) {
 	t.freeSpace = freeSpace(existingParent(t.destDir))
 	m.add(t)
 	logf("Demande de %s : %d fichier(s), %s — répondez dans la fenêtre CableDrop du navigateur.", name, len(files), fmtSize(total))
-	if m.app.uiClients.Load() == 0 {
-		m.app.openUI()
-	}
+	m.app.notifyIncoming()
 
 	// Pendant l'attente, on surveille si l'expéditeur abandonne.
 	gone := make(chan error, 1)

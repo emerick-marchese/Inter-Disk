@@ -68,3 +68,39 @@ func TestPickRoute(t *testing.T) {
 		t.Errorf("mode Wi-Fi sans Wi-Fi : attendu l'Ethernet de la box")
 	}
 }
+
+func TestCollectAndDescribe(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, "Docs", "sous"), 0o755)
+	os.WriteFile(filepath.Join(dir, "Docs", "a.txt"), []byte("12345"), 0o644)
+	os.WriteFile(filepath.Join(dir, "Docs", "sous", "b.txt"), []byte("123"), 0o644)
+	os.WriteFile(filepath.Join(dir, "seul.bin"), []byte("1"), 0o644)
+	os.MkdirAll(filepath.Join(dir, "Vide"), 0o755)
+
+	items, err := describePaths([]string{filepath.Join(dir, "Docs"), filepath.Join(dir, "seul.bin"), filepath.Join(dir, "Vide")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if items[0].Name != "Docs" || !items[0].IsDir || items[0].Count != 2 || items[0].Size != 8 {
+		t.Errorf("dossier mal décrit : %+v", items[0])
+	}
+	if items[1].IsDir || items[1].Count != 1 || items[2].Count != 0 {
+		t.Errorf("description inattendue : %+v", items)
+	}
+	files, err := collectFiles([]string{filepath.Join(dir, "Docs"), filepath.Join(dir, "seul.bin")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]bool{}
+	for _, f := range files {
+		got[f.Path] = f.abs != ""
+	}
+	for _, want := range []string{"Docs/a.txt", "Docs/sous/b.txt", "seul.bin"} {
+		if !got[want] {
+			t.Errorf("fichier %s absent : %v", want, got)
+		}
+	}
+	if _, err := collectFiles([]string{filepath.Join(dir, "Vide")}); err == nil {
+		t.Error("un dossier vide doit être refusé")
+	}
+}

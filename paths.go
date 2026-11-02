@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -160,4 +161,107 @@ func existingParent(p string) string {
 		}
 		p = parent
 	}
+}
+
+// ---------------------------------------------------------------- côté expéditeur
+
+// Item décrit un élément choisi par l'utilisateur (fichier ou dossier).
+type Item struct {
+	Path  string `json:"path"` // chemin complet
+	Name  string `json:"name"` // nom affiché
+	IsDir bool   `json:"is_dir"`
+	Count int    `json:"count"` // nombre de fichiers (1 pour un fichier)
+	Size  int64  `json:"size"`
+}
+
+// displayName donne le nom d'un fichier/dossier, y compris pour une racine de
+// disque (« D:\ » devient « D »).
+func displayName(p string) string {
+	p = filepath.Clean(p)
+	name := filepath.Base(p)
+	if name == "." || name == string(filepath.Separator) || name == "" || strings.HasSuffix(name, ":") || name == filepath.VolumeName(p) {
+		if v := strings.Trim(filepath.VolumeName(p), `:\/`); v != "" {
+			return v
+		}
+		return "Disque"
+	}
+	return name
+}
+
+// walkFiles parcourt un fichier ou un dossier et appelle fn pour chaque fichier
+// normal (les raccourcis/liens symboliques sont ignorés pour éviter les boucles).
+func walkFiles(root string, fn func(abs, rel string, info fs.FileInfo)) error {
+	info, err := os.Stat(root)
+	if err != nil {
+		return err
+	}
+	name := displayName(root)
+	if !info.IsDir() {
+		if info.Mode().IsRegular() {
+			fn(root, name, info)
+		}
+		return nil
+	}
+	return filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			if d != nil && d.IsDir() && p != root {
+				return fs.SkipDir // sous-dossier illisible : on continue sans lui
+			}
+			if p == root {
+				return err
+			}
+			return nil
+		}
+		if d.Type()&fs.ModeSymlink != 0 || !d.Type().IsRegular() {
+			return nil
+		}
+		fi, err := d.Info()
+		if err != nil {
+			return nil
+		}
+		rel, err := filepath.Rel(root, p)
+		if err != nil {
+			return nil
+		}
+		fn(p, name+"/"+filepath.ToSlash(rel), fi)
+		return nil
+	})
+}
+
+// describePaths résume les éléments choisis (taille, nombre de fichiers).
+func describePaths(paths []string) ([]Item, error) {
+	var out []Item
+	for _, p := range paths {
+		p = filepath.Clean(p)
+		info, err := os.Stat(p)
+		if err != nil {
+			return nil, fmt.Errorf("« %s » est introuvable", p)
+		}
+		it := Item{Path: p, Name: displayName(p), IsDir: info.IsDir()}
+		if err := walkFiles(p, func(_, _ string, fi fs.FileInfo) {
+			it.Count++
+			it.Size += fi.Size()
+		}); err != nil {
+			return nil, fmt.Errorf("lecture impossible de « %s » : %v", p, err)
+		}
+		out = append(out, it)
+	}
+	return out, nil
+}
+
+// collectFiles transforme les éléments choisis en liste de fichiers à envoyer.
+func collectFiles(paths []string) ([]FileEntry, error) {
+	var out []FileEntry
+	for _, p := range paths {
+		p = filepath.Clean(p)
+		if err := walkFiles(p, func(abs, rel string, fi fs.FileInfo) {
+			out = append(out, FileEntry{Path: rel, Size: fi.Size(), MTime: fi.ModTime().UnixMilli(), abs: abs})
+		}); err != nil {
+			return nil, fmt.Errorf("lecture impossible de « %s » : %v", p, err)
+		}
+	}
+	if len(out) == 0 {
+		return nil, errors.New("aucun fichier à envoyer (dossier vide ?)")
+	}
+	return out, nil
 }

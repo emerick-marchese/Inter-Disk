@@ -1,36 +1,35 @@
-// CableDrop — transfert de fichiers entre deux PC reliés par un câble Ethernet.
+// Inter Disk — transfert de fichiers entre deux PC, par câble Ethernet ou Wi-Fi.
 //
-// Un seul exécutable : il détecte l'autre PC sur le câble, et l'interface
-// s'affiche dans le navigateur (http://127.0.0.1:47822).
+// Application de bureau : la fenêtre (Wails + WebView2 sous Windows) affiche
+// l'interface de ui/index.html ; tout le travail réseau et disque est fait ici,
+// en Go, sans passer par un navigateur.
 package main
 
 import (
 	"bufio"
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"net"
-	"net/http"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
-	"syscall"
 	"time"
 	"unicode"
 )
 
 const (
-	appName    = "CableDrop"
-	appVersion = "1.1.0"
+	appName    = "Inter Disk"
+	appVersion = "2.0.0"
+	// Ancien nom de l'application (versions 1.x), pour reprendre ses réglages.
+	legacyName = "CableDrop"
 )
 
 type Config struct {
@@ -41,6 +40,8 @@ type Config struct {
 }
 
 type App struct {
+	ctx context.Context // contexte de la fenêtre (nil en mode test)
+
 	cfgMu   sync.Mutex
 	cfg     Config
 	cfgPath string
@@ -49,13 +50,10 @@ type App struct {
 	xfers *TransferManager
 
 	transferPort int
-	uiURL        string
-	noBrowser    bool
-
-	uiClients   atomic.Int32
-	browserMu   sync.Mutex
-	lastBrowser time.Time
 }
+
+// testHTTPServe est fourni par testhttp.go (compilé uniquement avec -tags testhttp).
+var testHTTPServe func(a *App, port int) error
 
 func (a *App) config() Config {
 	a.cfgMu.Lock()
@@ -74,45 +72,23 @@ func (a *App) updateConfig(fn func(*Config)) error {
 func main() {
 	discPort := flag.Int("discovery-port", 47820, "port UDP de détection des PC")
 	tcpPort := flag.Int("port", 47821, "port TCP de transfert")
-	uiPort := flag.Int("ui-port", 47822, "port de l'interface web (accessible uniquement depuis ce PC)")
 	cfgDir := flag.String("config-dir", "", "dossier de configuration (par défaut : dossier de config utilisateur)")
-	noBrowser := flag.Bool("no-browser", false, "ne pas ouvrir le navigateur automatiquement")
 	announce := flag.String("announce-ports", "", "(tests) ports UDP supplémentaires vers lesquels s'annoncer, séparés par des virgules")
+	testHTTP := flag.Int("test-http", 0, "(tests) pilote l'application par HTTP au lieu d'ouvrir une fenêtre")
 	flag.Parse()
 
-	go logWorker()
-
-	app := &App{noBrowser: *noBrowser}
+	app := &App{}
 	app.cfgPath = configPath(*cfgDir)
-	app.cfg = loadConfig(app.cfgPath)
+	setupLog(filepath.Dir(app.cfgPath))
+	go logWorker()
+	app.cfg = loadConfig(app.cfgPath, *cfgDir == "")
 
-	// Interface web, uniquement sur 127.0.0.1. Si le port est déjà pris par
-	// CableDrop, c'est qu'il tourne déjà : on rouvre simplement la page.
-	uiAddr := fmt.Sprintf("127.0.0.1:%d", *uiPort)
-	uiLn, err := net.Listen("tcp", uiAddr)
-	if err != nil {
-		if pingExisting(uiAddr) {
-			fmt.Println("CableDrop est déjà lancé : ouverture de l'interface…")
-			if !*noBrowser {
-				openURL("http://" + uiAddr + "/")
-				time.Sleep(time.Second)
-			}
-			return
-		}
-		uiLn, err = net.Listen("tcp", "127.0.0.1:0")
-		if err != nil {
-			fatal("impossible de démarrer l'interface : %v", err)
-		}
-	}
-	app.uiURL = "http://" + uiLn.Addr().String() + "/"
-
-	// Port de transfert (accessible depuis l'autre PC).
 	tln, err := net.Listen("tcp4", fmt.Sprintf(":%d", *tcpPort))
 	if err != nil {
 		logf("Port TCP %d occupé, utilisation d'un autre port.", *tcpPort)
 		tln, err = net.Listen("tcp4", ":0")
 		if err != nil {
-			fatal("impossible d'ouvrir le port de transfert : %v", err)
+			fatal("Impossible d'ouvrir le port de transfert : %v", err)
 		}
 	}
 	app.transferPort = tln.Addr().(*net.TCPAddr).Port
@@ -125,54 +101,30 @@ func main() {
 	}
 	app.disc = NewDiscovery(app, *discPort, extra)
 	app.xfers = NewTransferManager(app)
-
-	srv := &http.Server{Handler: app.routes(), ReadHeaderTimeout: 10 * time.Second}
-	go srv.Serve(uiLn)
 	go app.xfers.Serve(tln)
 	app.disc.Start()
 
 	cfg := app.config()
-	fmt.Println()
-	fmt.Println("  ┌──────────────────────────────────────────────────────────┐")
-	fmt.Printf("  │  CableDrop %-46s│\n", appVersion+" — transfert par câble ou Wi-Fi")
-	fmt.Println("  └──────────────────────────────────────────────────────────┘")
-	fmt.Printf("  Ce PC        : %s\n", cfg.Name)
-	fmt.Printf("  Interface    : %s\n", app.uiURL)
-	fmt.Printf("  Fichiers reçus dans : %s\n", cfg.DownloadDir)
+	logf("%s %s démarré — PC « %s », réception dans %s, port %d", appName, appVersion, cfg.Name, cfg.DownloadDir, app.transferPort)
 	for _, ifc := range listLocalIfaces() {
-		if ifc.Kind == "virtual" {
-			continue
+		if ifc.Kind != "virtual" {
+			logf("Carte réseau : %s %s (%s)", ifc.Name, ifc.IP, kindLabel(ifc.Kind, ifc.LinkLocal))
 		}
-		fmt.Printf("  Carte réseau : %-24s %-15s (%s)\n", ifc.Name, ifc.IP, kindLabel(ifc.Kind, ifc.LinkLocal))
-	}
-	fmt.Println()
-	fmt.Println("  Laissez cette fenêtre ouverte. Fermez-la pour quitter CableDrop.")
-	fmt.Println()
-
-	if !*noBrowser {
-		app.openUI()
 	}
 
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
-	<-sig
+	if *testHTTP > 0 {
+		if testHTTPServe == nil {
+			fatal("Option -test-http disponible uniquement dans les versions de test.")
+		}
+		if err := testHTTPServe(app, *testHTTP); err != nil {
+			fatal("%v", err)
+		}
+		return
+	}
+
+	runDesktop(app, *cfgDir)
 	app.disc.SendBye()
 	time.Sleep(150 * time.Millisecond)
-}
-
-// openUI ouvre l'interface dans le navigateur (au plus une fois toutes les 8 s).
-func (a *App) openUI() {
-	if a.noBrowser {
-		return
-	}
-	a.browserMu.Lock()
-	if time.Since(a.lastBrowser) < 8*time.Second {
-		a.browserMu.Unlock()
-		return
-	}
-	a.lastBrowser = time.Now()
-	a.browserMu.Unlock()
-	openURL(a.uiURL)
 }
 
 // ---------------------------------------------------------------- config
@@ -188,9 +140,19 @@ func configPath(dir string) string {
 	return filepath.Join(dir, "config.json")
 }
 
-func loadConfig(path string) Config {
+func loadConfig(path string, migrate bool) Config {
 	var c Config
-	if b, err := os.ReadFile(path); err == nil {
+	b, err := os.ReadFile(path)
+	if err != nil && migrate {
+		// Première ouverture d'Inter Disk : on reprend les réglages de CableDrop.
+		if base, e := os.UserConfigDir(); e == nil {
+			if old, e := os.ReadFile(filepath.Join(base, legacyName, "config.json")); e == nil {
+				b, err = old, nil
+				logf("Réglages repris de %s.", legacyName)
+			}
+		}
+	}
+	if err == nil {
 		_ = json.Unmarshal(b, &c)
 	}
 	changed := false
@@ -202,8 +164,8 @@ func loadConfig(path string) Config {
 		c.Name = defaultName()
 		changed = true
 	}
-	if c.DownloadDir == "" {
-		c.DownloadDir = defaultDownloadDir()
+	if c.DownloadDir == "" || filepath.Clean(c.DownloadDir) == filepath.Clean(downloadsDir(legacyName)) {
+		c.DownloadDir = downloadsDir(appName)
 		changed = true
 	}
 	if c.RouteMode != modeCable && c.RouteMode != modeWifi {
@@ -238,7 +200,8 @@ func defaultName() string {
 	return cleanName(strings.Split(h, ".")[0])
 }
 
-func defaultDownloadDir() string {
+// downloadsDir renvoie Téléchargements/<sub>.
+func downloadsDir(sub string) string {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		home = "."
@@ -259,7 +222,7 @@ func defaultDownloadDir() string {
 			}
 		}
 	}
-	return filepath.Join(dl, appName)
+	return filepath.Join(dl, sub)
 }
 
 // ---------------------------------------------------------------- helpers
@@ -289,12 +252,30 @@ func cleanName(s string) string {
 	return strings.TrimSpace(b.String())
 }
 
-var logCh = make(chan string, 512)
+var (
+	logCh   = make(chan string, 512)
+	logFile *os.File
+)
 
-// logf écrit dans la console sans jamais bloquer l'appelant (sous Windows,
-// une sélection dans la console met les écritures en pause).
+// setupLog ouvre le journal « inter-disk.log » dans le dossier de configuration
+// (utile pour comprendre un problème : l'application n'a pas de console).
+func setupLog(dir string) {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return
+	}
+	p := filepath.Join(dir, "inter-disk.log")
+	flags := os.O_CREATE | os.O_WRONLY | os.O_APPEND
+	if fi, err := os.Stat(p); err == nil && fi.Size() > 2<<20 {
+		flags = os.O_CREATE | os.O_WRONLY | os.O_TRUNC
+	}
+	if f, err := os.OpenFile(p, flags, 0o644); err == nil {
+		logFile = f
+	}
+}
+
+// logf écrit dans le journal sans jamais bloquer l'appelant.
 func logf(format string, args ...any) {
-	msg := time.Now().Format("15:04:05") + "  " + fmt.Sprintf(format, args...)
+	msg := time.Now().Format("2006-01-02 15:04:05") + "  " + fmt.Sprintf(format, args...)
 	select {
 	case logCh <- msg:
 	default:
@@ -302,29 +283,28 @@ func logf(format string, args ...any) {
 }
 
 func logWorker() {
+	var w *bufio.Writer
+	if logFile != nil {
+		w = bufio.NewWriter(logFile)
+	}
 	for m := range logCh {
 		fmt.Println(m)
+		if w != nil {
+			w.WriteString(m + "\n")
+			if len(logCh) == 0 {
+				w.Flush()
+			}
+		}
 	}
 }
 
 func fatal(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, "\nERREUR : "+format+"\n", args...)
-	if runtime.GOOS == "windows" {
-		fmt.Fprintln(os.Stderr, "\nAppuyez sur Entrée pour fermer…")
-		_, _ = bufio.NewReader(os.Stdin).ReadString('\n')
+	msg := fmt.Sprintf(format, args...)
+	if logFile != nil {
+		fmt.Fprintf(logFile, "%s  ERREUR : %s\n", time.Now().Format("2006-01-02 15:04:05"), msg)
 	}
+	showErrorBox(appName, msg)
 	os.Exit(1)
-}
-
-func pingExisting(addr string) bool {
-	c := http.Client{Timeout: 2 * time.Second}
-	r, err := c.Get("http://" + addr + "/api/ping")
-	if err != nil {
-		return false
-	}
-	defer r.Body.Close()
-	b, _ := io.ReadAll(io.LimitReader(r.Body, 64))
-	return strings.HasPrefix(string(b), "cabledrop")
 }
 
 func startDetached(cmd *exec.Cmd) error {
@@ -333,21 +313,6 @@ func startDetached(cmd *exec.Cmd) error {
 	}
 	go func() { _ = cmd.Wait() }()
 	return nil
-}
-
-func openURL(u string) {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", u)
-	case "darwin":
-		cmd = exec.Command("open", u)
-	default:
-		cmd = exec.Command("xdg-open", u)
-	}
-	if err := startDetached(cmd); err != nil {
-		logf("Ouvrez %s dans votre navigateur.", u)
-	}
 }
 
 func openPath(p string) error {
