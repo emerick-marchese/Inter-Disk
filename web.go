@@ -93,6 +93,7 @@ type MeView struct {
 	Name        string `json:"name"`
 	OS          string `json:"os"`
 	DownloadDir string `json:"download_dir"`
+	RouteMode   string `json:"route_mode"`
 	Port        int    `json:"port"`
 }
 
@@ -110,7 +111,7 @@ func (a *App) state() StateView {
 	c := a.config()
 	return StateView{
 		Version:      appVersion,
-		Me:           MeView{ID: c.ID, Name: c.Name, OS: runtime.GOOS, DownloadDir: c.DownloadDir, Port: a.transferPort},
+		Me:           MeView{ID: c.ID, Name: c.Name, OS: runtime.GOOS, DownloadDir: c.DownloadDir, RouteMode: c.RouteMode, Port: a.transferPort},
 		Ifaces:       a.disc.Ifaces(),
 		Peers:        a.disc.Peers(),
 		Transfers:    a.xfers.Views(),
@@ -149,14 +150,25 @@ func (a *App) handleEvents(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleSend(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		PeerID string      `json:"peer_id"`
+		Mode   string      `json:"mode"`
 		Files  []FileEntry `json:"files"`
 	}
 	if !readJSON(w, r, &req) {
 		return
 	}
-	peer, route, found := a.disc.Best(req.PeerID)
+	if req.Mode != modeCable && req.Mode != modeWifi {
+		req.Mode = a.config().RouteMode
+	}
+	peer, route, found := a.disc.BestFor(req.PeerID, req.Mode)
 	if !found {
-		writeErr(w, http.StatusNotFound, "Ce PC n'est plus visible. Vérifiez le câble et que CableDrop est ouvert dessus.")
+		switch {
+		case peer.ID == "":
+			writeErr(w, http.StatusNotFound, "Ce PC n'est plus visible. Vérifiez que CableDrop est ouvert dessus.")
+		case req.Mode == modeWifi:
+			writeErr(w, http.StatusNotFound, peer.Name+" n'est pas visible en Wi-Fi. Les deux PC doivent être connectés au même réseau.")
+		default:
+			writeErr(w, http.StatusNotFound, peer.Name+" n'est pas relié par câble. Vérifiez le câble, ou passez en mode Wi-Fi.")
+		}
 		return
 	}
 	t, err := a.xfers.StartSend(peer, route, req.Files)
@@ -231,11 +243,19 @@ func (a *App) handleSettings(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name        *string `json:"name"`
 		DownloadDir *string `json:"download_dir"`
+		RouteMode   *string `json:"route_mode"`
 	}
 	if !readJSON(w, r, &req) {
 		return
 	}
-	var name, dir string
+	var name, dir, mode string
+	if req.RouteMode != nil {
+		mode = *req.RouteMode
+		if mode != modeCable && mode != modeWifi {
+			writeErr(w, http.StatusBadRequest, "mode de transfert inconnu")
+			return
+		}
+	}
 	if req.Name != nil {
 		name = cleanName(*req.Name)
 		if name == "" {
@@ -267,6 +287,9 @@ func (a *App) handleSettings(w http.ResponseWriter, r *http.Request) {
 		}
 		if dir != "" {
 			c.DownloadDir = dir
+		}
+		if mode != "" {
+			c.RouteMode = mode
 		}
 	})
 	if err != nil {

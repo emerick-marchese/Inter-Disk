@@ -49,6 +49,17 @@ button{font:inherit;cursor:pointer;color:inherit}
 .status .dot{width:10px;height:10px;border-radius:50%;margin-top:6px;flex:none;background:var(--muted)}
 .status.ok .dot{background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft)}
 .status.warn .dot{background:var(--warn)}
+.status.info{border-left-color:var(--accent)}
+.status.info .dot{background:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+.modebar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.modebar .lbl{font-weight:600;color:var(--muted);font-size:14px}
+.seg{display:inline-flex;background:var(--hover);border:1px solid var(--line);border-radius:13px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:7px 14px;border-radius:10px;font-weight:600;color:var(--muted);display:inline-flex;gap:8px;align-items:center;transition:background .15s,color .15s}
+.seg button small{font-weight:500;font-size:12px;opacity:.85}
+.seg button:hover{color:var(--text)}
+.seg button[aria-checked=true]{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(16,24,40,.14)}
+.seg button[aria-checked=true] svg{color:var(--accent)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .status .extra{color:var(--muted);font-size:13.5px}
 .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start}
 @media (max-width:840px){.grid{grid-template-columns:minmax(0,1fr)}}
@@ -76,6 +87,11 @@ h2{font-size:15.5px;margin:0 0 14px;display:flex;align-items:center;gap:10px;let
 .badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
 .badge.ok{background:var(--ok-soft);color:var(--ok)}
 .badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.info{background:var(--accent-soft);color:var(--accent)}
+.badge.off::before{background:transparent;border:1.5px solid currentColor;width:5px;height:5px}
+.peer.off .pc-ico,.peer.off .pinfo{opacity:.55}
+.hint{margin:10px 0 0;font-size:14px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+.hint[hidden]{display:none}
 .searching{display:flex;gap:14px;align-items:center;padding:18px 14px;border:1.5px dashed var(--line);border-radius:12px}
 .spin{width:22px;height:22px;border-radius:50%;border:3px solid var(--accent-soft);border-top-color:var(--accent);animation:spin 1s linear infinite;flex:none}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -160,10 +176,18 @@ input[type=text]{font:inherit;color:var(--text);background:var(--card);border:1p
   <header>
     <div class="brand">
       <div class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v4M15 3v4M7 7h10v4a5 5 0 0 1-10 0zM12 16v5"/></svg></div>
-      <div>CableDrop<small>Transfert de fichiers par câble Ethernet</small></div>
+      <div>CableDrop<small>Transfert de fichiers entre deux PC, par câble ou Wi-Fi</small></div>
     </div>
     <div class="me">Ce PC : <b id="myName">…</b><button class="btn ghost sm" id="btnSettings" type="button">Réglages</button></div>
   </header>
+
+  <div class="modebar">
+    <span class="lbl" id="modeLbl">Transférer par :</span>
+    <div class="seg" role="radiogroup" aria-labelledby="modeLbl" id="modeSeg">
+      <button type="button" role="radio" data-mode="cable" aria-checked="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v4M15 3v4M7 7h10v4a5 5 0 0 1-10 0zM12 16v5"/></svg>Câble <small>rapide</small></button>
+      <button type="button" role="radio" data-mode="wifi" aria-checked="false"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.8a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><path d="M12 19.5h.01"/></svg>Wi-Fi <small>plus lent</small></button>
+    </div>
+  </div>
 
   <div id="linkStatus" class="status"><span class="dot"></span><div>Chargement…</div></div>
 
@@ -177,7 +201,8 @@ input[type=text]{font:inherit;color:var(--text);background:var(--card);border:1p
           <li>Lancez <b>CableDrop sur les deux PC</b>.</li>
           <li>Vérifiez que le <b>câble RJ45</b> est bien branché des deux côtés (les voyants de la prise doivent s'allumer).</li>
           <li>Sans box entre les deux, <b>Windows met jusqu'à 1 minute</b> à donner une adresse automatique (169.254.x.x) au câble. Patientez un peu.</li>
-          <li><b>Pare-feu Windows</b> : au premier lancement, autorisez CableDrop en cochant aussi « <b>Réseaux publics</b> » (un câble direct est vu comme « Réseau non identifié »). Sinon, lancez <code>autoriser-pare-feu.bat</code> fourni avec CableDrop.</li>
+          <li><b>Pare-feu Windows</b> : déjà réglé si CableDrop a été installé avec <code>CableDrop-Setup.exe</code>. Avec la version portable, autorisez CableDrop en cochant aussi « <b>Réseaux publics</b> » (un câble direct est vu comme « Réseau non identifié »), ou lancez <code>autoriser-pare-feu.bat</code>.</li>
+          <li><b>En mode Wi-Fi</b> : les deux PC doivent être connectés au même réseau (même box). Les réseaux « invités » ou publics bloquent souvent les échanges entre appareils.</li>
           <li>En dernier recours, saisissez ci-dessous l'adresse affichée en haut de la page CableDrop de l'autre PC.</li>
         </ol>
       </details>
@@ -204,6 +229,7 @@ input[type=text]{font:inherit;color:var(--text);background:var(--card);border:1p
         <ul class="sel-list" id="selList"></ul>
       </div>
       <button class="btn primary big" id="sendBtn" type="button" disabled>Envoyer</button>
+      <p class="hint" id="sendHint" hidden><span id="sendHintText"></span><button class="btn sm" type="button" id="sendHintBtn"></button></p>
     </section>
   </main>
 
@@ -286,14 +312,29 @@ function toast(msg, kind){
 }
 
 let state = null, selectedPeer = null, selection = [], peersSig = '';
+let mode = 'cable', modePending = 0;
+const MODE_NAME = {cable: 'câble', wifi: 'Wi-Fi'};
+const modeRoute = p => mode === 'wifi' ? p.wifi : p.cable;
+function setMode(m){
+  if (m === mode) return;
+  mode = m; modePending = Date.now(); peersSig = ''; selSig = '';
+  if (state) { renderMode(); renderLink(); renderPeers(); renderSend(); }
+  api('/api/settings', {route_mode: m}).catch(err => toast(err.message, 'err'));
+}
+function renderMode(){
+  for (const b of document.querySelectorAll('#modeSeg button')) b.setAttribute('aria-checked', String(b.dataset.mode === mode));
+}
+$('#modeSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setMode(b.dataset.mode); });
 const waiters = new Map();
 const activeUploads = new Set();
 
 // ------------------------------------------------------------ état en direct
 function connect(){
   const es = new EventSource('/api/events');
-  es.onmessage = e => { state = JSON.parse(e.data); $('#offline').hidden = true; onState(); };
-  es.onerror = () => { $('#offline').hidden = false; };
+  let offTimer = null;
+  es.onmessage = e => { clearTimeout(offTimer); offTimer = null; state = JSON.parse(e.data); $('#offline').hidden = true; onState(); };
+  // n'affiche l'alerte que si la reconnexion automatique échoue
+  es.onerror = () => { if (!offTimer) offTimer = setTimeout(() => { $('#offline').hidden = false; }, 4000); };
 }
 function onState(){
   for (const [id, res] of waiters) {
@@ -301,6 +342,9 @@ function onState(){
     if (!t) { res('gone'); waiters.delete(id); }
     else if (t.state !== 'connecting' && t.state !== 'waiting') { res(t.state); waiters.delete(id); }
   }
+  // le mode enregistré fait foi, sauf juste après un clic (le temps que le réglage soit pris en compte)
+  if (Date.now() - modePending > 2000 && state.me.route_mode && state.me.route_mode !== mode) { mode = state.me.route_mode; peersSig = ''; selSig = ''; }
+  renderMode();
   $('#myName').textContent = state.me.name;
   $('#dlDir').textContent = state.me.download_dir;
   renderLink(); renderPeers(); renderSend(); renderXfers(); renderIncoming();
@@ -311,7 +355,14 @@ function renderLink(){
   const cable = ifs.filter(i => i.kind === 'cable' || (i.kind === 'other' && i.link_local));
   const direct = cable.find(i => i.link_local);
   const el = $('#linkStatus'); let cls, html;
-  if (direct) {
+  if (mode === 'wifi') {
+    const wifi = ifs.filter(i => i.kind === 'wifi');
+    const net = ifs.filter(i => !i.link_local && i.kind !== 'wifi');
+    const speed = `<div class="extra">Les fichiers passent par votre box ou votre point d'accès : c'est plus lent qu'un câble (souvent 5 à 40 Mo/s). Les deux PC doivent être connectés au même réseau.</div>`;
+    if (wifi.length) { cls = 'info'; html = `<b>Mode Wi-Fi</b> — carte « ${esc(wifi[0].name)} » · adresse de ce PC : <code>${esc(wifi[0].ip)}</code>` + speed; }
+    else if (net.length) { cls = 'info'; html = `<b>Mode réseau</b> — pas de Wi-Fi actif, passage par la carte « ${esc(net[0].name)} » (<code>${esc(net[0].ip)}</code>)` + speed; }
+    else { cls = 'warn'; html = `<b>Aucune connexion Wi-Fi active sur ce PC.</b><div class="extra">Connectez ce PC au même réseau Wi-Fi que l'autre PC, ou repassez en mode Câble.</div>`; }
+  } else if (direct) {
     cls = 'ok'; html = `<b>Câble Ethernet direct détecté</b> — carte « ${esc(direct.name)} »<div class="extra">Adresse de ce PC sur le câble : <code>${esc(direct.ip)}</code> · les transferts passent par le câble, pas par le Wi-Fi ni la box.</div>`;
   } else if (cable.length) {
     cls = 'ok'; html = `<b>Ethernet connecté</b> — carte « ${esc(cable[0].name)} »<div class="extra">Adresse de ce PC : <code>${esc(cable[0].ip)}</code> · les PC vus par ce câble sont utilisés en priorité.</div>`;
@@ -323,25 +374,28 @@ function renderLink(){
 }
 
 function routeBadge(p){
-  const r = p.best;
-  if (r.kind === 'cable' || (r.kind === 'other' && r.link_local)) return `<span class="badge ok">${r.link_local ? 'Câble direct' : 'Câble Ethernet'}</span>`;
-  if (r.kind === 'wifi') return `<span class="badge warn" title="Ce PC n'est visible que par le Wi-Fi : vérifiez le câble">Wi-Fi seulement</span>`;
-  return `<span class="badge">Réseau · ${esc(r.iface)}</span>`;
+  const r = modeRoute(p);
+  if (!r) return mode === 'wifi'
+    ? `<span class="badge off" title="Ce PC n'est pas visible par le Wi-Fi">Pas en Wi-Fi</span>`
+    : `<span class="badge ${p.wifi ? 'warn' : 'off'}" title="Ce PC n'est pas relié par le câble">${p.wifi ? 'Wi-Fi seulement' : 'Pas de câble'}</span>`;
+  if (mode === 'cable') return `<span class="badge ok">${r.link_local ? 'Câble direct' : 'Câble Ethernet'}</span>`;
+  if (r.kind === 'wifi') return `<span class="badge info">Wi-Fi</span>`;
+  return `<span class="badge info">Réseau · ${esc(r.iface)}</span>`;
 }
 function renderPeers(){
   const peers = state.peers || [];
   if (selectedPeer && !peers.some(p => p.id === selectedPeer)) selectedPeer = null;
   if (!selectedPeer && peers.length === 1) selectedPeer = peers[0].id;
-  const sig = JSON.stringify([peers.map(p => [p.id, p.name, p.os, p.best.ip, p.best.kind, p.best.link_local, p.best.iface]), selectedPeer]);
+  const sig = JSON.stringify([mode, peers.map(p => [p.id, p.name, p.os, p.cable && p.cable.ip, p.cable && p.cable.link_local, p.wifi && p.wifi.ip, p.wifi && p.wifi.kind, p.wifi && p.wifi.iface]), selectedPeer]);
   if (sig === peersSig) return; peersSig = sig;
   const box = $('#peers');
   if (!peers.length) {
-    box.innerHTML = `<div class="searching"><span class="spin"></span><div><b>Recherche de l'autre PC…</b><br><span class="muted small">Lancez CableDrop sur l'autre PC, relié par le câble.</span></div></div>`;
+    box.innerHTML = `<div class="searching"><span class="spin"></span><div><b>Recherche de l'autre PC…</b><br><span class="muted small">${mode === 'wifi' ? 'Lancez CableDrop sur l\'autre PC, connecté au même réseau Wi-Fi.' : 'Lancez CableDrop sur l\'autre PC, relié par le câble.'}</span></div></div>`;
     return;
   }
-  box.innerHTML = peers.map(p => `<button type="button" class="peer ${p.id === selectedPeer ? 'sel' : ''}" data-id="${esc(p.id)}" aria-pressed="${p.id === selectedPeer}">
+  box.innerHTML = peers.map(p => `<button type="button" class="peer ${p.id === selectedPeer ? 'sel' : ''} ${modeRoute(p) ? '' : 'off'}" data-id="${esc(p.id)}" aria-pressed="${p.id === selectedPeer}">
       <span class="pc-ico">${ICON.pc}</span>
-      <span class="pinfo"><b>${esc(p.name)}</b><span>${esc(OS[p.os] || p.os)} · ${esc(p.best.ip)}</span></span>
+      <span class="pinfo"><b>${esc(p.name)}</b><span>${esc(OS[p.os] || p.os)} · ${esc((modeRoute(p) || p.best).ip)}</span></span>
       ${routeBadge(p)}<span class="radio"></span></button>`).join('');
 }
 $('#peers').addEventListener('click', e => {
@@ -372,10 +426,25 @@ function renderSend(){
   }
   const btn = $('#sendBtn');
   const peer = state && (state.peers || []).find(p => p.id === selectedPeer);
+  const other = mode === 'wifi' ? 'cable' : 'wifi';
+  let hint = '';
+  if (peer && !modeRoute(peer)) {
+    hint = mode === 'wifi' ? `${peer.name} n'est pas visible en Wi-Fi.` : `${peer.name} n'est pas relié par câble.`;
+    if (!(other === 'wifi' ? peer.wifi : peer.cable)) hint += mode === 'wifi' ? ' Les deux PC doivent être sur le même réseau.' : ' Vérifiez le câble.';
+  }
   if (!selection.length) { btn.disabled = true; btn.textContent = 'Envoyer'; }
   else if (!peer) { btn.disabled = true; btn.textContent = 'Choisissez d\'abord le PC destinataire'; }
-  else { btn.disabled = false; btn.textContent = `Envoyer ${plural(selection.length, 'fichier', 'fichiers')} (${fmtSize(totalSize(selection))}) à ${peer.name}`; }
+  else if (!modeRoute(peer)) { btn.disabled = true; btn.textContent = mode === 'wifi' ? 'Pas de liaison Wi-Fi avec ce PC' : 'Pas de liaison par câble avec ce PC'; }
+  else { btn.disabled = false; btn.textContent = `Envoyer ${plural(selection.length, 'fichier', 'fichiers')} (${fmtSize(totalSize(selection))}) à ${peer.name} par ${MODE_NAME[mode]}`; }
+  $('#sendHint').hidden = !hint;
+  if (hint) {
+    $('#sendHintText').textContent = hint;
+    const canSwitch = other === 'wifi' ? peer.wifi : peer.cable;
+    $('#sendHintBtn').hidden = !canSwitch;
+    $('#sendHintBtn').textContent = other === 'wifi' ? 'Passer en Wi-Fi (plus lent)' : 'Passer en mode Câble';
+  }
 }
+$('#sendHintBtn').onclick = () => setMode(mode === 'wifi' ? 'cable' : 'wifi');
 $('#selList').addEventListener('click', e => {
   const b = e.target.closest('.x'); if (!b) return;
   const top = b.dataset.top; selection = selection.filter(f => f.path.split('/')[0] !== top); renderSend();
@@ -424,12 +493,12 @@ window.addEventListener('drop', async e => {
 // ------------------------------------------------------------ envoi
 $('#sendBtn').onclick = async () => {
   const peer = (state.peers || []).find(p => p.id === selectedPeer);
-  if (!peer || !selection.length) return;
+  if (!peer || !selection.length || !modeRoute(peer)) return;
   const files = selection.slice();
   selection = []; renderSend();
   let id;
   try {
-    id = (await api('/api/send', {peer_id: peer.id, files: files.map(f => ({path: f.path, size: f.file.size, mtime: f.file.lastModified || 0}))})).id;
+    id = (await api('/api/send', {peer_id: peer.id, mode, files: files.map(f => ({path: f.path, size: f.file.size, mtime: f.file.lastModified || 0}))})).id;
   } catch (err) { toast(err.message, 'err'); selection = files.concat(selection); renderSend(); return; }
   activeUploads.add(id);
   try {
@@ -456,7 +525,7 @@ function xferText(t){
   const who = t.peer_name;
   const what = t.count === 1 ? t.first.split('/').pop() : plural(t.count, 'fichier', 'fichiers');
   const title = (t.dir === 'out' ? 'Envoi vers ' : 'Réception depuis ') + who + ' — ' + what;
-  const via = t.kind === 'wifi' ? ' · via Wi-Fi' : (t.kind === 'cable' || t.link_local ? ' · par câble' : '');
+  const via = t.kind === 'wifi' ? ' · via Wi-Fi' : (t.kind === 'cable' || t.link_local ? ' · par câble' : ' · via le réseau');
   let sub = '', pct = t.total > 0 ? t.done / t.total * 100 : (t.state === 'done' ? 100 : 0);
   switch (t.state) {
     case 'connecting': sub = 'Connexion à ' + who + '…'; break;

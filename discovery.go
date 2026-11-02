@@ -126,6 +126,15 @@ func (d *Discovery) message(kind string) []byte {
 
 func (d *Discovery) announce(kind string, ifs []LocalIface) {
 	msg := d.message(kind)
+	if len(ifs) == 0 {
+		// Liste des cartes indisponible : broadcast général par la route par défaut.
+		if c, err := net.ListenUDP("udp4", nil); err == nil {
+			for _, p := range d.targets {
+				_, _ = c.WriteToUDP(msg, &net.UDPAddr{IP: net.IPv4bcast, Port: p})
+			}
+			c.Close()
+		}
+	}
 	for _, ifc := range ifs {
 		ones, bits := ifc.Net.Mask.Size()
 		if bits != 32 || ones >= 31 {
@@ -232,7 +241,9 @@ func (d *Discovery) handle(a Announce, ip net.IP) {
 	}
 	d.mu.Unlock()
 
-	if newRoute && a.T == "hello" && a.DPort > 0 && a.DPort < 65536 {
+	// On répond à chaque annonce : l'autre PC nous voit même si nos propres
+	// broadcasts ne lui parviennent pas (pare-feu, carte mal détectée…).
+	if a.T == "hello" && a.DPort > 0 && a.DPort < 65536 {
 		d.sendTo(ip, a.DPort, d.message("reply"))
 	}
 	if newRoute {
@@ -308,24 +319,63 @@ func (d *Discovery) SendBye() {
 	d.announce("bye", ifs)
 }
 
-// Best renvoie le meilleur chemin (câble en priorité) vers un PC.
-func (d *Discovery) Best(id string) (Peer, Route, bool) {
+const (
+	modeCable = "cable"
+	modeWifi  = "wifi"
+)
+
+// pickRoute choisit le chemin à utiliser selon le mode choisi :
+//   - câble : câble direct (169.254.x.x) en priorité, sinon Ethernet ;
+//   - Wi-Fi : Wi-Fi en priorité, sinon un autre réseau (box), jamais le câble direct.
+func pickRoute(routes map[string]*Route, mode string) *Route {
+	rank := func(r *Route) int {
+		c := routeClass(r.Kind, r.LinkLocal)
+		if mode == modeWifi {
+			switch {
+			case c == "wifi":
+				return 3
+			case c == "network":
+				return 2
+			case !r.LinkLocal:
+				return 1 // Ethernet branché sur la box
+			}
+			return 0
+		}
+		if c == "cable" {
+			if r.LinkLocal {
+				return 3
+			}
+			return 2
+		}
+		return 0
+	}
+	var best *Route
+	bestRank := 0
+	for _, r := range routes {
+		k := rank(r)
+		if k == 0 {
+			continue
+		}
+		if best == nil || k > bestRank || (k == bestRank && r.LastSeen.After(best.LastSeen)) {
+			best, bestRank = r, k
+		}
+	}
+	return best
+}
+
+// BestFor renvoie le chemin à utiliser vers un PC dans le mode demandé.
+func (d *Discovery) BestFor(id, mode string) (Peer, Route, bool) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	p := d.peers[id]
 	if p == nil {
 		return Peer{}, Route{}, false
 	}
-	var best *Route
-	for _, r := range p.Routes {
-		if best == nil || r.score() > best.score() || (r.score() == best.score() && r.LastSeen.After(best.LastSeen)) {
-			best = r
-		}
+	r := pickRoute(p.Routes, mode)
+	if r == nil {
+		return Peer{ID: p.ID, Name: p.Name, OS: p.OS}, Route{}, false
 	}
-	if best == nil {
-		return Peer{}, Route{}, false
-	}
-	return Peer{ID: p.ID, Name: p.Name, OS: p.OS}, *best, true
+	return Peer{ID: p.ID, Name: p.Name, OS: p.OS}, *r, true
 }
 
 func (d *Discovery) NameOf(id string) string {
@@ -353,7 +403,16 @@ type PeerView struct {
 	Name   string      `json:"name"`
 	OS     string      `json:"os"`
 	Best   RouteView   `json:"best"`
+	Cable  *RouteView  `json:"cable,omitempty"` // chemin utilisé en mode câble
+	Wifi   *RouteView  `json:"wifi,omitempty"`  // chemin utilisé en mode Wi-Fi
 	Routes []RouteView `json:"routes"`
+}
+
+func routeView(r *Route) *RouteView {
+	if r == nil {
+		return nil
+	}
+	return &RouteView{IP: r.IP.String(), Port: r.Port, Iface: r.Iface, Kind: r.Kind, LinkLocal: r.LinkLocal, Manual: r.Manual}
 }
 
 type IfaceView struct {
@@ -374,9 +433,9 @@ func (d *Discovery) Peers() []PeerView {
 			rs = append(rs, r)
 		}
 		sort.Slice(rs, func(i, j int) bool { return rs[i].score() > rs[j].score() })
-		v := PeerView{ID: p.ID, Name: p.Name, OS: p.OS}
+		v := PeerView{ID: p.ID, Name: p.Name, OS: p.OS, Cable: routeView(pickRoute(p.Routes, modeCable)), Wifi: routeView(pickRoute(p.Routes, modeWifi))}
 		for _, r := range rs {
-			v.Routes = append(v.Routes, RouteView{IP: r.IP.String(), Port: r.Port, Iface: r.Iface, Kind: r.Kind, LinkLocal: r.LinkLocal, Manual: r.Manual})
+			v.Routes = append(v.Routes, *routeView(r))
 		}
 		if len(v.Routes) > 0 {
 			v.Best = v.Routes[0]

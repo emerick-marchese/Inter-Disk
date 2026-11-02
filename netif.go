@@ -44,6 +44,18 @@ func routeScore(kind string, linkLocal bool) int {
 	return s
 }
 
+// routeClass range un chemin dans l'un des modes proposés à l'utilisateur :
+// « cable » (câble direct ou Ethernet), « wifi », ou « network » (autre).
+func routeClass(kind string, linkLocal bool) string {
+	switch {
+	case kind == "cable", linkLocal && kind != "wifi":
+		return "cable"
+	case kind == "wifi":
+		return "wifi"
+	}
+	return "network"
+}
+
 func kindLabel(kind string, linkLocal bool) string {
 	switch kind {
 	case "cable":
@@ -70,7 +82,22 @@ var (
 
 func exists(p string) bool { _, err := os.Stat(p); return err == nil }
 
+// kindOverride force le type d'une carte (tests uniquement),
+// ex. CABLEDROP_IFACE_KINDS="eth0=wifi,ifb0=cable".
+var kindOverride = func() map[string]string {
+	m := map[string]string{}
+	for _, kv := range strings.Split(os.Getenv("CABLEDROP_IFACE_KINDS"), ",") {
+		if k, v, ok := strings.Cut(strings.TrimSpace(kv), "="); ok {
+			m[k] = v
+		}
+	}
+	return m
+}()
+
 func classify(name string) string {
+	if k, ok := kindOverride[name]; ok {
+		return k
+	}
 	switch runtime.GOOS {
 	case "linux":
 		base := filepath.Join("/sys/class/net", name)

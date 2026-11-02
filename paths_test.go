@@ -1,10 +1,12 @@
 package main
 
 import (
+	"net"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestSanitizePath(t *testing.T) {
@@ -41,5 +43,28 @@ func TestPlanPathsNeverOverwrites(t *testing.T) {
 	}
 	if !reflect.DeepEqual(roots, []string{"a (1).txt", "Photos (1)", "b"}) {
 		t.Errorf("roots = %v", roots)
+	}
+}
+
+func TestPickRoute(t *testing.T) {
+	now := time.Now()
+	direct := &Route{IP: net.IPv4(169, 254, 1, 2), Kind: "cable", LinkLocal: true, LastSeen: now}
+	box := &Route{IP: net.IPv4(192, 168, 1, 20), Kind: "cable", LastSeen: now}
+	wifi := &Route{IP: net.IPv4(192, 168, 1, 21), Kind: "wifi", LastSeen: now}
+	all := map[string]*Route{"d": direct, "b": box, "w": wifi}
+	if r := pickRoute(all, modeCable); r != direct {
+		t.Errorf("mode câble : %v, attendu le câble direct", r.IP)
+	}
+	if r := pickRoute(all, modeWifi); r != wifi {
+		t.Errorf("mode Wi-Fi : %v, attendu le Wi-Fi", r.IP)
+	}
+	if r := pickRoute(map[string]*Route{"w": wifi}, modeCable); r != nil {
+		t.Errorf("mode câble sans câble : %v, attendu aucun chemin", r.IP)
+	}
+	if r := pickRoute(map[string]*Route{"d": direct}, modeWifi); r != nil {
+		t.Errorf("mode Wi-Fi ne doit jamais utiliser le câble direct")
+	}
+	if r := pickRoute(map[string]*Route{"d": direct, "b": box}, modeWifi); r != box {
+		t.Errorf("mode Wi-Fi sans Wi-Fi : attendu l'Ethernet de la box")
 	}
 }

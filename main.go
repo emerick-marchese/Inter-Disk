@@ -30,13 +30,14 @@ import (
 
 const (
 	appName    = "CableDrop"
-	appVersion = "1.0.0"
+	appVersion = "1.1.0"
 )
 
 type Config struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	DownloadDir string `json:"download_dir"`
+	RouteMode   string `json:"route_mode"` // cable (par défaut) | wifi
 }
 
 type App struct {
@@ -133,7 +134,7 @@ func main() {
 	cfg := app.config()
 	fmt.Println()
 	fmt.Println("  ┌──────────────────────────────────────────────────────────┐")
-	fmt.Printf("  │  CableDrop %-46s│\n", appVersion+" — transfert par câble Ethernet")
+	fmt.Printf("  │  CableDrop %-46s│\n", appVersion+" — transfert par câble ou Wi-Fi")
 	fmt.Println("  └──────────────────────────────────────────────────────────┘")
 	fmt.Printf("  Ce PC        : %s\n", cfg.Name)
 	fmt.Printf("  Interface    : %s\n", app.uiURL)
@@ -203,6 +204,10 @@ func loadConfig(path string) Config {
 	}
 	if c.DownloadDir == "" {
 		c.DownloadDir = defaultDownloadDir()
+		changed = true
+	}
+	if c.RouteMode != modeCable && c.RouteMode != modeWifi {
+		c.RouteMode = modeCable
 		changed = true
 	}
 	if changed {
