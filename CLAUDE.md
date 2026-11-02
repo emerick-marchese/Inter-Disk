@@ -11,11 +11,12 @@ Voir README.md pour l'utilisation.
 - Les programmes (dont l'installateur `CableDrop-Setup.exe`) sont publiés dans les
   **Releases GitHub**, jamais commités dans le dépôt. Après toute modification du code :
   augmentez `appVersion` dans `main.go`, lancez `./build.sh`, commitez et poussez sur
-  `main`, puis lancez `./release.sh` (ajoutez un fichier de notes en argument si besoin).
-  Le README pointe vers `releases/latest/download/CableDrop-Setup.exe`.
-- `gh` fonctionne uniquement via l'API REST (`gh api repos/...`) dans les sessions
-  Claude Code : `gh release` (GraphQL) est bloqué. C'est pourquoi `release.sh` utilise
-  `gh api`.
+  `main`, puis publiez la Release. Le README pointe vers
+  `releases/latest/download/CableDrop-Setup.exe` : l'installateur doit garder ce nom.
+- Les sessions Claude Code n'ont **pas le droit de créer ou modifier une Release**
+  (HTTP 403). C'est le propriétaire qui la publie : soit à la main sur GitHub, en
+  envoyant les fichiers de `dist/` que Claude lui transmet, soit avec `./release.sh`
+  sur son propre PC (`gh` connecté à son compte).
 
 ## Développement
 
