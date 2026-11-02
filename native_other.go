@@ -9,4 +9,5 @@ import (
 
 func showErrorBox(title, msg string) { fmt.Fprintf(os.Stderr, "%s : %s\n", title, msg) }
 
-func beep() {}
+func beep()            {}
+func systemDark() bool { return false }

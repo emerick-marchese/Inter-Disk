@@ -32,13 +32,18 @@ func runDesktop(a *App, cfgDir string) {
 		h := sha1.Sum([]byte(cfgDir))
 		lockID += "-" + hex.EncodeToString(h[:4])
 	}
+	bg := &options.RGBA{R: 243, G: 245, B: 250, A: 255}
+	if systemDark() {
+		bg = &options.RGBA{R: 10, G: 12, B: 17, A: 255}
+	}
 	err = wails.Run(&options.App{
 		Title:            appName,
-		Width:            1120,
-		Height:           820,
-		MinWidth:         760,
-		MinHeight:        560,
-		BackgroundColour: &options.RGBA{R: 243, G: 245, B: 248, A: 255},
+		Width:            1180,
+		Height:           800,
+		MinWidth:         900,
+		MinHeight:        600,
+		Frameless:        true, // barre de titre et bordures dessinées par l'application
+		BackgroundColour: bg,
 		AssetServer:      &assetserver.Options{Assets: ui},
 		OnStartup:        a.startup,
 		OnBeforeClose:    a.beforeClose,
@@ -73,20 +78,23 @@ func (a *App) startup(ctx context.Context) {
 	}()
 }
 
-// beforeClose demande confirmation si un transfert est en cours.
+// beforeClose : si un transfert est en cours, la fenêtre reste ouverte et
+// l'interface demande confirmation (puis appelle ForceQuit).
 func (a *App) beforeClose(ctx context.Context) bool {
-	if !a.xfers.HasActive() {
+	if a.forceQuit.Load() || !a.xfers.HasActive() {
 		return false
 	}
-	res, err := wruntime.MessageDialog(ctx, wruntime.MessageDialogOptions{
-		Type:    wruntime.QuestionDialog,
-		Title:   "Quitter " + appName + " ?",
-		Message: "Un transfert est en cours : il sera interrompu.\n\nQuitter quand même ?",
-	})
-	if err != nil {
-		return false
+	a.showWindow(false)
+	wruntime.EventsEmit(ctx, "confirm-close")
+	return true // true = on garde la fenêtre ouverte
+}
+
+// ForceQuit ferme l'application même si un transfert est en cours.
+func (a *App) ForceQuit() {
+	a.forceQuit.Store(true)
+	if a.ctx != nil {
+		wruntime.Quit(a.ctx)
 	}
-	return res != "Yes" && res != "Oui" // true = on garde la fenêtre ouverte
 }
 
 // showWindow ramène la fenêtre au premier plan (demande entrante, relance…).

@@ -27,9 +27,16 @@ window.go = {main: {App: new Proxy({}, {get: (_, method) => async (...args) => {
   return j.result;
 }})}};
 window.runtime = {
-  EventsOn(name, cb) { if (name === 'state') { const es = new EventSource('/events'); es.onmessage = e => cb(JSON.parse(e.data)); } },
+  _ev: {},
+  EventsOn(name, cb) {
+    if (name === 'state') { const es = new EventSource('/events'); es.onmessage = e => cb(JSON.parse(e.data)); }
+    else (this._ev[name] = this._ev[name] || []).push(cb);
+  },
   OnFileDrop(cb) { window.__testDrop = paths => cb(0, 0, paths); },
+  WindowMinimise() {}, WindowToggleMaximise() {}, WindowIsMaximised() { return Promise.resolve(false); },
+  Quit() { window.__quit = true; },
 };
+window.__emit = (name, data) => (window.runtime._ev[name] || []).forEach(cb => cb(data));
 </script>`
 
 func serveTestHTTP(a *App, port int) error {
@@ -40,7 +47,12 @@ func serveTestHTTP(a *App, port int) error {
 	}
 	html := strings.Replace(string(page), "<head>", "<head>"+testShim, 1)
 	mux := http.NewServeMux()
+	files := http.FileServer(http.FS(ui))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			files.ServeHTTP(w, r)
+			return
+		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		fmt.Fprint(w, html)
 	})

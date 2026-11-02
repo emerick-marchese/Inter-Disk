@@ -4,254 +4,381 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inter Disk</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%232563eb'/%3E%3Cpath d='M9 4v4M15 4v4M7 8h10v3a5 5 0 0 1-10 0zM12 16v4' stroke='white' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
+@font-face{font-family:"Inter";src:url("fonts/inter.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:block}
 :root{
-  color-scheme: light dark;
-  --bg:#f3f5f8; --card:#ffffff; --text:#18202c; --muted:#5d6979; --line:#e2e7ee; --hover:#f4f7fb;
-  --accent:#2563eb; --accent-h:#1d4ed8; --accent-soft:#e9f0ff; --on-accent:#ffffff;
-  --ok:#157a3a; --ok-soft:#e5f5eb; --warn:#9a5600; --warn-soft:#fff3dc; --err:#b42323; --err-soft:#fdeaea;
-  --shadow:0 1px 2px rgba(16,24,40,.05),0 6px 20px rgba(16,24,40,.05);
-  --r:16px;
+  color-scheme: light;
+  --bg:#f3f5fa; --glow-1:rgba(124,92,255,.10); --glow-2:rgba(34,211,238,.08);
+  --panel:#ffffff; --panel-2:#f6f7fb; --panel-3:#eef0f6; --side:rgba(255,255,255,.55);
+  --line:#e3e6ee; --line-2:#d5d9e4; --text:#121621; --muted:#5d6678; --faint:#8a92a3;
+  --accent:#5b4ff5; --accent-2:#0ea5c6; --accent-soft:rgba(91,79,245,.10); --on-accent:#fff;
+  --grad:linear-gradient(135deg,#8b5cf6 0%,#5b7cff 50%,#22d3ee 100%);
+  --ok:#059669; --ok-soft:rgba(5,150,105,.10); --warn:#c2410c; --warn-soft:rgba(234,88,12,.10);
+  --err:#dc2626; --err-soft:rgba(220,38,38,.09); --info:#4f46e5; --info-soft:rgba(79,70,229,.09);
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px -6px rgba(16,24,40,.08);
+  --shadow-lg:0 30px 80px -20px rgba(16,24,40,.35);
+  --win-border:rgba(16,24,40,.14); --scrim:rgba(14,18,28,.40);
+  --tb-hover:rgba(16,24,40,.06);
 }
 @media (prefers-color-scheme: dark){:root{
-  --bg:#0d1218; --card:#151c25; --text:#e6ebf2; --muted:#98a4b4; --line:#26303c; --hover:#1b2430;
-  --accent:#5b93ff; --accent-h:#7ba9ff; --accent-soft:#182844; --on-accent:#08101f;
-  --ok:#55d68b; --ok-soft:#11301f; --warn:#f5b93e; --warn-soft:#33270f; --err:#f47c7c; --err-soft:#3a1719;
-  --shadow:0 1px 2px rgba(0,0,0,.35);
+  color-scheme: dark;
+  --bg:#0a0c11; --glow-1:rgba(124,92,255,.16); --glow-2:rgba(34,211,238,.08);
+  --panel:rgba(255,255,255,.035); --panel-2:rgba(255,255,255,.06); --panel-3:rgba(255,255,255,.085); --side:rgba(255,255,255,.02);
+  --line:rgba(255,255,255,.075); --line-2:rgba(255,255,255,.13); --text:#eef1f7; --muted:#8d96a9; --faint:#5f6779;
+  --accent:#8b7dff; --accent-2:#22d3ee; --accent-soft:rgba(139,125,255,.14); --on-accent:#fff;
+  --ok:#34d399; --ok-soft:rgba(52,211,153,.12); --warn:#fbbf24; --warn-soft:rgba(251,191,36,.11);
+  --err:#f87171; --err-soft:rgba(248,113,113,.12); --info:#a5b4fc; --info-soft:rgba(129,140,248,.13);
+  --shadow:0 1px 0 rgba(255,255,255,.03) inset;
+  --shadow-lg:0 30px 90px -20px rgba(0,0,0,.7);
+  --win-border:rgba(255,255,255,.09); --scrim:rgba(3,5,10,.62);
+  --tb-hover:rgba(255,255,255,.07);
 }}
 *{box-sizing:border-box}
-html,body{margin:0}
-body{user-select:none;-webkit-user-select:none;cursor:default}
-code,input,.xsub,.flist{user-select:text;-webkit-user-select:text}
-body{font:15px/1.5 "Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
-code{font:13px/1.4 ui-monospace,"Cascadia Mono",Consolas,Menlo,monospace;background:var(--hover);padding:1px 6px;border-radius:6px;word-break:break-all}
-.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 56px}
-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
-.brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:21px;letter-spacing:-.015em}
-.logo{width:36px;height:36px;border-radius:11px;background:var(--accent);display:grid;place-items:center;color:#fff;flex:none}
-.brand small{display:block;font-weight:500;font-size:13px;color:var(--muted);letter-spacing:0}
-.me{display:flex;align-items:center;gap:6px;color:var(--muted);flex-wrap:wrap}
-.me b{color:var(--text)}
-button{font:inherit;cursor:pointer;color:inherit}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--card);color:var(--text);padding:8px 14px;border-radius:10px;font-weight:600;transition:background .15s,border-color .15s,opacity .15s;white-space:nowrap}
-.btn:hover{background:var(--hover)}
-.btn:focus-visible,.peer:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
-.btn.primary:hover{background:var(--accent-h);border-color:var(--accent-h)}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
-.btn.ghost:hover{background:var(--hover);color:var(--text)}
-.btn.big{width:100%;padding:13px 16px;font-size:16px;border-radius:12px}
-.btn.sm{padding:5px 11px;font-size:13px;border-radius:8px}
-.btn.danger{color:var(--err)}
-.status{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-radius:12px;margin-bottom:16px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--muted)}
-.status.ok{border-left-color:var(--ok)}
-.status.warn{border-left-color:var(--warn);background:var(--warn-soft)}
-.status .dot{width:10px;height:10px;border-radius:50%;margin-top:6px;flex:none;background:var(--muted)}
-.status.ok .dot{background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft)}
-.status.warn .dot{background:var(--warn)}
-.status.info{border-left-color:var(--accent)}
-.status.info .dot{background:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
-.modebar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-.modebar .lbl{font-weight:600;color:var(--muted);font-size:14px}
-.seg{display:inline-flex;background:var(--hover);border:1px solid var(--line);border-radius:13px;padding:3px;gap:2px}
-.seg button{border:0;background:transparent;padding:7px 14px;border-radius:10px;font-weight:600;color:var(--muted);display:inline-flex;gap:8px;align-items:center;transition:background .15s,color .15s}
-.seg button small{font-weight:500;font-size:12px;opacity:.85}
-.seg button:hover{color:var(--text)}
-.seg button[aria-checked=true]{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(16,24,40,.14)}
+html,body{margin:0;height:100%;overflow:hidden}
+body{font:14px/1.5 "Inter","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;font-feature-settings:"cv11","ss01","ss03";
+  color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;cursor:default;
+  background-image:radial-gradient(900px 520px at -8% -12%,var(--glow-1),transparent 60%),radial-gradient(800px 520px at 108% 112%,var(--glow-2),transparent 60%)}
+body::after{content:"";position:fixed;inset:0;border:1px solid var(--win-border);pointer-events:none;z-index:200}
+body.maxed::after{display:none}
+code,input,.xsub,.flist,.selectable{user-select:text;-webkit-user-select:text}
+code{font:12px/1.4 "Cascadia Mono",Consolas,ui-monospace,monospace;background:var(--panel-3);padding:2px 6px;border-radius:6px;word-break:break-all}
+button{font:inherit;color:inherit;cursor:pointer}
+svg{flex:none}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:10px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background-color:var(--faint)}
+::-webkit-scrollbar-track{background:transparent}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------------------------------------------------------- barre de titre */
+.titlebar{height:40px;display:flex;align-items:center;--wails-draggable:drag;position:relative;z-index:5}
+.tb-brand{display:flex;align-items:center;gap:9px;padding-left:14px;font-weight:600;font-size:13px;letter-spacing:-.01em}
+.tb-logo{width:20px;height:20px;border-radius:6px;background:var(--grad);display:grid;place-items:center;color:#fff;box-shadow:0 2px 8px -2px rgba(91,124,255,.6)}
+.tb-ver{color:var(--faint);font-weight:500;font-size:12px}
+.tb-spacer{flex:1}
+.tb-ctrls{display:flex;height:100%;--wails-draggable:no-drag}
+.tb-btn{width:46px;height:100%;border:0;background:transparent;display:grid;place-items:center;color:var(--muted);transition:background .12s,color .12s}
+.tb-btn:hover{background:var(--tb-hover);color:var(--text)}
+.tb-btn.close:hover{background:#e5484d;color:#fff}
+.tb-btn .restore{display:none}
+body.maxed .tb-btn .maximize{display:none}
+body.maxed .tb-btn .restore{display:block}
+
+/* ---------------------------------------------------------- structure */
+.app{display:grid;grid-template-columns:288px minmax(0,1fr);height:calc(100vh - 40px)}
+.side{display:flex;flex-direction:column;gap:22px;padding:8px 16px 16px;border-right:1px solid var(--line);background:var(--side);overflow:auto}
+.main{overflow:auto;padding:14px 34px 34px}
+.main-inner{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.label{font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin:0 4px 10px;display:flex;align-items:center;gap:8px}
+.count{background:var(--panel-3);color:var(--muted);border-radius:99px;padding:0 7px;font-size:11px;letter-spacing:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+
+/* avatars */
+.avatar{--h:250;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:none;color:#fff;font-weight:650;font-size:13.5px;letter-spacing:.02em;
+  background:linear-gradient(135deg,hsl(var(--h) 80% 64%),hsl(calc(var(--h) + 40) 75% 52%));box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
+.avatar.sm{width:34px;height:34px;border-radius:11px;font-size:12.5px}
+.avatar.lg{width:52px;height:52px;border-radius:16px;font-size:18px}
+.avatar.xl{width:72px;height:72px;border-radius:22px;font-size:24px}
+
+/* ce PC */
+.me{display:flex;align-items:center;gap:12px;padding:12px}
+.me-info{flex:1;min-width:0}
+.me-name{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.me-sub{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.icon-btn{width:34px;height:34px;border-radius:10px;border:0;background:transparent;color:var(--muted);display:grid;place-items:center;transition:background .12s,color .12s}
+.icon-btn:hover{background:var(--panel-3);color:var(--text)}
+
+/* sélecteur câble / Wi-Fi */
+.seg{position:relative;display:grid;grid-template-columns:1fr 1fr;background:var(--panel-2);border:1px solid var(--line);border-radius:13px;padding:4px}
+.seg-thumb{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:10px;background:var(--panel);border:1px solid var(--line-2);box-shadow:0 2px 8px -2px rgba(0,0,0,.18);transition:transform .25s cubic-bezier(.3,.7,.2,1)}
+@media (prefers-color-scheme: dark){.seg-thumb{background:rgba(255,255,255,.09)}}
+.seg[data-mode=wifi] .seg-thumb{transform:translateX(100%)}
+.seg button{position:relative;z-index:1;border:0;background:transparent;padding:8px 6px;border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:1px;color:var(--muted);transition:color .15s}
+.seg button b{display:flex;align-items:center;gap:7px;font-weight:600;font-size:13.5px}
+.seg button small{font-size:11px;color:var(--faint)}
+.seg button[aria-checked=true]{color:var(--text)}
 .seg button[aria-checked=true] svg{color:var(--accent)}
-.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.status .extra{color:var(--muted);font-size:13.5px}
-.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start}
-@media (max-width:840px){.grid{grid-template-columns:minmax(0,1fr)}}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
-.card+.card{margin-top:0}
-h2{font-size:15.5px;margin:0 0 14px;display:flex;align-items:center;gap:10px;letter-spacing:-.005em}
-.step{width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
-.cardhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
-.cardhead h2{margin:0}
-.muted{color:var(--muted)}
-.small{font-size:13px}
-/* PC détectés */
-#peers{display:flex;flex-direction:column;gap:8px}
-.peer{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);transition:border-color .15s,background .15s}
-.peer:hover{border-color:var(--accent);}
-.peer.sel{border-color:var(--accent);background:var(--accent-soft)}
-.pc-ico{width:38px;height:38px;border-radius:10px;background:var(--hover);display:grid;place-items:center;color:var(--muted);flex:none}
-.peer.sel .pc-ico{background:var(--card);color:var(--accent)}
-.pinfo{flex:1;min-width:0;display:flex;flex-direction:column}
-.pinfo b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pinfo span{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:none}
-.peer.sel .radio{border:5px solid var(--accent)}
-.badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--hover);color:var(--muted);white-space:nowrap}
-.badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
-.badge.ok{background:var(--ok-soft);color:var(--ok)}
-.badge.warn{background:var(--warn-soft);color:var(--warn)}
-.badge.info{background:var(--accent-soft);color:var(--accent)}
-.badge.off::before{background:transparent;border:1.5px solid currentColor;width:5px;height:5px}
-.peer.off .pc-ico,.peer.off .pinfo{opacity:.55}
-.hint{margin:10px 0 0;font-size:14px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+.link{margin-top:10px;display:flex;gap:10px;padding:10px 12px;border-radius:12px;background:var(--panel);border:1px solid var(--line);font-size:12.5px}
+.link .dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex:none;background:var(--faint)}
+.link.ok .dot{background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft)}
+.link.info .dot{background:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+.link.warn{background:var(--warn-soft);border-color:transparent}
+.link.warn .dot{background:var(--warn)}
+.link b{font-weight:600;display:block}
+.link span{color:var(--muted)}
+.link .err{color:var(--err);display:block;margin-top:4px}
+
+/* appareils */
+.grow{flex:1;min-height:0}
+.peers{display:flex;flex-direction:column;gap:6px}
+.peer{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:9px 10px;border-radius:13px;border:1px solid transparent;background:transparent;transition:background .15s,border-color .15s;animation:fadein .3s ease-out}
+.peer:hover{background:var(--panel-2)}
+.peer.sel{background:var(--accent-soft);border-color:rgba(124,108,255,.35)}
+.peer .pinfo{flex:1;min-width:0;display:flex;flex-direction:column}
+.peer .pinfo b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.peer .pinfo span{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.peer.off .avatar,.peer.off .pinfo b{opacity:.5}
+.pdot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--faint)}
+.pdot.ok{background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
+.pdot.info{background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.pdot.warn{background:var(--warn)}
+.pdot.off{background:transparent;border:1.5px solid var(--faint)}
+.scan{display:flex;align-items:center;gap:12px;padding:12px;border-radius:13px;border:1px dashed var(--line-2);color:var(--muted);font-size:12.5px}
+.scan b{color:var(--text);font-weight:600;display:block;font-size:13px}
+.mini-radar{width:30px;height:30px;position:relative;flex:none}
+.mini-radar i{position:absolute;inset:0;border-radius:50%;border:2px solid var(--accent);opacity:0;animation:ping 2.4s cubic-bezier(.2,.6,.3,1) infinite}
+.mini-radar i:nth-child(2){animation-delay:.8s}.mini-radar i:nth-child(3){animation-delay:1.6s}
+.mini-radar b{position:absolute;inset:11px;border-radius:50%;background:var(--grad)}
+@keyframes ping{0%{transform:scale(.25);opacity:.9}100%{transform:scale(1);opacity:0}}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}}
+.side-foot{display:flex;flex-direction:column;gap:4px}
+.link-btn{border:0;background:transparent;color:var(--muted);font-weight:500;font-size:13px;padding:7px 8px;border-radius:9px;display:flex;align-items:center;gap:8px;text-align:left}
+.link-btn:hover{background:var(--panel-2);color:var(--text)}
+.manual{display:flex;gap:6px;margin-bottom:4px}
+.manual[hidden]{display:none}
+input[type=text]{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line-2);border-radius:10px;padding:8px 11px;min-width:0;flex:1;outline:none;transition:border-color .15s,box-shadow .15s}
+input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+/* boutons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line-2);background:var(--panel);color:var(--text);padding:9px 15px;border-radius:11px;font-weight:600;font-size:13.5px;transition:background .15s,border-color .15s,transform .08s,opacity .15s,box-shadow .15s;white-space:nowrap}
+.btn:hover{background:var(--panel-2)}
+.btn:active{transform:scale(.98)}
+.btn.primary{border:0;background:var(--grad);color:#fff;box-shadow:0 8px 22px -8px rgba(91,124,255,.75)}
+.btn.primary:hover{filter:brightness(1.07);background:var(--grad)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;filter:none;box-shadow:none}
+.btn.primary:disabled{opacity:1;background:var(--panel-3);color:var(--faint)}
+.btn.big{padding:14px 22px;font-size:15px;border-radius:14px;width:100%}
+.btn.sm{padding:6px 11px;font-size:12.5px;border-radius:9px}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn.ghost:hover{background:var(--panel-2);color:var(--text)}
+.btn.danger{color:var(--err)}
+
+/* destinataire */
+.target{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:62px}
+.t-left{display:flex;align-items:center;gap:15px;min-width:0}
+.t-kicker{font-size:12.5px;color:var(--muted);font-weight:500}
+.t-name{font-size:24px;font-weight:700;letter-spacing:-.025em;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.radar{width:52px;height:52px;position:relative;flex:none}
+.radar i{position:absolute;inset:0;border-radius:50%;border:2px solid var(--accent);opacity:0;animation:ping 2.4s cubic-bezier(.2,.6,.3,1) infinite}
+.radar i:nth-child(2){animation-delay:.8s}.radar i:nth-child(3){animation-delay:1.6s}
+.radar b{position:absolute;inset:18px;border-radius:50%;background:var(--grad);box-shadow:0 0 18px rgba(91,124,255,.6)}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;font-size:12.5px;font-weight:600;background:var(--panel-3);color:var(--muted);white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.info{background:var(--info-soft);color:var(--info)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+
+/* zone de dépôt */
+.dropzone{position:relative;border-radius:22px;padding:38px 24px;text-align:center;background:var(--panel);border:1.5px dashed var(--line-2);transition:border-color .2s,background .2s,padding .25s,transform .2s}
+.dropzone.over{border-color:var(--accent);background:var(--accent-soft);transform:scale(1.005)}
+.dz-icon{width:64px;height:64px;margin:0 auto 14px;border-radius:20px;background:var(--grad);display:grid;place-items:center;color:#fff;box-shadow:0 14px 30px -12px rgba(91,124,255,.8)}
+.dz-title{font-size:17px;font-weight:650;letter-spacing:-.01em}
+.dz-sub{color:var(--muted);font-size:13px;margin:4px 0 18px}
+.dz-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.dropzone.compact{display:flex;align-items:center;gap:16px;padding:14px 18px;text-align:left}
+.dropzone.compact .dz-icon{width:42px;height:42px;border-radius:13px;margin:0}
+.dropzone.compact .dz-icon svg{width:20px;height:20px}
+.dropzone.compact .dz-text{flex:1}
+.dropzone.compact .dz-title{font-size:14.5px}
+.dropzone.compact .dz-sub{margin:0}
+
+/* sélection */
+.selection{overflow:hidden;animation:fadein .25s ease-out}
+.selection[hidden]{display:none}
+.sel-head{display:flex;justify-content:space-between;align-items:center;padding:12px 10px 12px 18px;border-bottom:1px solid var(--line)}
+.sel-head b{font-weight:650}
+.sel-head span{color:var(--muted)}
+.sel-list{list-style:none;margin:0;padding:6px;max-height:232px;overflow:auto}
+.sel-list li{display:flex;align-items:center;gap:12px;padding:7px 8px 7px 10px;border-radius:10px}
+.sel-list li:hover{background:var(--panel-2)}
+.ficon{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--panel-3);color:var(--muted);flex:none}
+.ficon.dir{background:var(--accent-soft);color:var(--accent)}
+.sel-list .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.sel-list .sz{color:var(--muted);font-size:12.5px;white-space:nowrap}
+.sel-list .x{border:0;background:transparent;color:var(--faint);width:28px;height:28px;border-radius:8px;display:grid;place-items:center}
+.sel-list .x:hover{background:var(--err-soft);color:var(--err)}
+.hint{margin:-6px 0 0;font-size:13px;color:var(--muted);display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}
 .hint[hidden]{display:none}
-.searching{display:flex;gap:14px;align-items:center;padding:18px 14px;border:1.5px dashed var(--line);border-radius:12px}
-.spin{width:22px;height:22px;border-radius:50%;border:3px solid var(--accent-soft);border-top-color:var(--accent);animation:spin 1s linear infinite;flex:none}
-@keyframes spin{to{transform:rotate(360deg)}}
-details.help{margin-top:14px;font-size:14px}
-details.help summary{cursor:pointer;color:var(--accent);font-weight:600}
-details.help ol{margin:10px 0 0;padding-left:20px;color:var(--muted)}
-details.help li{margin-bottom:6px}
-details.help b{color:var(--text)}
-.manual{display:flex;gap:8px;margin-top:12px}
-input[type=text]{font:inherit;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:0;flex:1}
-/* Zone d'envoi */
-.drop{border:2px dashed var(--line);border-radius:14px;padding:26px 16px;text-align:center;transition:border-color .15s,background .15s}
-.drop.over{border-color:var(--accent);background:var(--accent-soft)}
-.drop svg{color:var(--accent)}
-.drop p{margin:8px 0 14px;font-weight:600}
-.drop .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-.sel-box{margin-top:14px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.sel-head{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 8px 14px;background:var(--hover);font-size:14px}
-.sel-list{list-style:none;margin:0;padding:4px 0;max-height:220px;overflow:auto}
-.sel-list li{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 14px;font-size:14px}
-.sel-list .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sel-list .sz{color:var(--muted);font-size:13px;white-space:nowrap}
-.sel-list .x{border:0;background:transparent;color:var(--muted);width:26px;height:26px;border-radius:7px;font-size:17px;line-height:1}
-.sel-list .x:hover{background:var(--line);color:var(--text)}
-.fico{color:var(--muted);flex:none;display:grid}
-#sendBtn{margin-top:14px}
-/* Transferts */
-#xferCard{margin-top:16px}
-.xfer{padding:13px 0;border-top:1px solid var(--line)}
-.xfer:first-child{border-top:0}
-.xrow{display:flex;gap:12px;align-items:center}
-.xdir{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--accent-soft);color:var(--accent)}
+
+/* activité */
+.activity{margin-top:10px}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sec-head h2{margin:0;font-size:15px;font-weight:650;letter-spacing:-.01em}
+.sec-head .acts{display:flex;gap:4px}
+#xfers{display:flex;flex-direction:column;gap:8px}
+.xfer{display:flex;gap:14px;align-items:center;padding:14px 16px;animation:fadein .3s ease-out}
+.xdir{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:none;background:var(--accent-soft);color:var(--accent)}
 .xfer.in .xdir{background:var(--ok-soft);color:var(--ok)}
+.xfer.st-error .xdir,.xfer.st-rejected .xdir{background:var(--err-soft);color:var(--err)}
 .xmain{flex:1;min-width:0}
+.xtop{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
 .xtitle{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.xsub{font-size:13.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.xfer.st-error .xsub,.xfer.st-rejected .xsub{color:var(--err);white-space:normal}
+.xpct{font-weight:700;font-variant-numeric:tabular-nums;font-size:13px;color:var(--text)}
+.xsub{font-size:12.5px;color:var(--muted);margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+.xfer.st-error .xsub,.xfer.st-rejected .xsub,.xfer.st-expired .xsub{color:var(--err);white-space:normal}
 .xfer.st-done .xsub{color:var(--ok)}
-.xact{display:flex;gap:6px;flex:none}
-.bar{height:6px;background:var(--hover);border-radius:99px;overflow:hidden;margin:9px 0 0 46px}
-.bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .45s linear}
+.bar{height:6px;border-radius:99px;background:var(--panel-3);overflow:hidden;margin-top:8px;position:relative}
+.bar i{display:block;height:100%;width:0;border-radius:99px;background:var(--grad);transition:width .45s linear;position:relative;overflow:hidden}
+.xfer.st-transferring .bar i::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);animation:shine 1.4s linear infinite}
+@keyframes shine{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 .xfer.st-done .bar i{background:var(--ok)}
-.xfer.st-error .bar i,.xfer.st-cancelled .bar i,.xfer.st-rejected .bar i,.xfer.st-expired .bar i{background:var(--muted);opacity:.5}
 .xfer.nobar .bar{display:none}
 .xfer.wait .bar i{width:30%!important;animation:slide 1.3s ease-in-out infinite}
 @keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(340%)}}
-.empty{color:var(--muted);margin:6px 0}
-.foot{margin:14px 0 0;font-size:13.5px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-/* Fenêtres */
-.modal{position:fixed;inset:0;background:rgba(8,12,18,.55);display:grid;place-items:center;padding:16px;z-index:50;backdrop-filter:blur(2px)}
+.xfer.st-error .bar i,.xfer.st-cancelled .bar i{background:var(--faint);opacity:.6}
+.xact{display:flex;gap:6px;flex:none}
+.empty{display:flex;align-items:center;gap:12px;padding:18px;border-radius:16px;border:1px dashed var(--line-2);color:var(--muted);font-size:13px}
+.empty[hidden]{display:none}
+
+/* fenêtres */
+.modal{position:fixed;inset:40px 0 0;background:var(--scrim);display:grid;place-items:center;padding:20px;z-index:50;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:fade .15s ease-out}
 .modal[hidden]{display:none}
-.dlg{background:var(--card);border:1px solid var(--line);border-radius:18px;max-width:500px;width:100%;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.3);max-height:calc(100vh - 32px);overflow:auto}
-.dlg h3{margin:0 0 6px;font-size:18px;letter-spacing:-.01em}
-.dlg .ico{width:46px;height:46px;border-radius:14px;background:var(--ok-soft);color:var(--ok);display:grid;place-items:center;margin-bottom:12px}
-.flist{list-style:none;margin:12px 0;padding:8px 12px;background:var(--hover);border-radius:10px;font-size:14px;max-height:180px;overflow:auto}
-.flist li{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 0}
-.dlg-btns{display:flex;gap:10px;margin-top:16px}
-.dlg-btns .btn{flex:1;padding:11px}
-.warnline{background:var(--err-soft);color:var(--err);padding:8px 12px;border-radius:10px;font-size:14px;margin:10px 0 0}
-.field{margin:14px 0}
-.field label{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+@keyframes fade{from{opacity:0}}
+.dlg{background:var(--bg);background-image:linear-gradient(var(--panel),var(--panel));border:1px solid var(--line-2);border-radius:22px;max-width:460px;width:100%;padding:26px;box-shadow:var(--shadow-lg);max-height:calc(100vh - 80px);overflow:auto;animation:pop .22s cubic-bezier(.3,.7,.2,1.2)}
+@keyframes pop{from{transform:translateY(10px) scale(.97);opacity:0}}
+.dlg h3{margin:0 0 6px;font-size:19px;letter-spacing:-.02em;font-weight:700}
+.dlg p.muted{color:var(--muted);margin:0}
+.dlg-btns{display:flex;gap:10px;margin-top:22px}
+.dlg-btns .btn{flex:1;padding:12px}
+.in-head{display:flex;justify-content:center;margin-bottom:16px}
+.ring{position:relative}
+.ring::before,.ring::after{content:"";position:absolute;inset:-6px;border-radius:26px;border:2px solid hsl(var(--h) 80% 64%);animation:pulse 2s ease-out infinite}
+.ring::after{animation-delay:1s}
+@keyframes pulse{0%{transform:scale(.92);opacity:.8}100%{transform:scale(1.25);opacity:0}}
+.dlg.in{text-align:center}
+.chips{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:10px 0 0}
+.chip{padding:4px 10px;border-radius:99px;background:var(--panel-3);font-size:12.5px;font-weight:600;color:var(--muted)}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.info{background:var(--info-soft);color:var(--info)}
+.flist{list-style:none;margin:16px 0 0;padding:8px;background:var(--panel-2);border-radius:14px;font-size:13px;max-height:160px;overflow:auto;text-align:left}
+.flist li{display:flex;align-items:center;gap:9px;padding:4px 6px;overflow:hidden;white-space:nowrap}
+.flist li span{overflow:hidden;text-overflow:ellipsis}
+.flist li svg{color:var(--faint)}
+.dest{margin-top:12px;font-size:12.5px;color:var(--muted)}
+.warnline{background:var(--err-soft);color:var(--err);padding:9px 12px;border-radius:11px;font-size:13px;margin-top:12px;font-weight:500}
+.countdown{height:3px;border-radius:9px;background:var(--panel-3);overflow:hidden;margin-top:18px}
+.countdown i{display:block;height:100%;background:var(--grad);transition:width .5s linear}
+.timer{font-size:12px;color:var(--faint);margin:8px 0 0}
+.field{margin:16px 0 0}
+.field label{display:block;font-weight:600;font-size:13px;margin-bottom:7px}
 .field .row{display:flex;gap:8px}
-.pulse{animation:pulse 1.6s ease-out infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(21,122,58,.35)}100%{box-shadow:0 0 0 16px rgba(21,122,58,0)}}
-/* Glisser-déposer sur toute la page */
-#dragPage{position:fixed;inset:10px;border:3px dashed var(--accent);border-radius:20px;background:color-mix(in srgb,var(--accent-soft) 85%,transparent);display:grid;place-items:center;z-index:40;pointer-events:none;font-size:22px;font-weight:700;color:var(--accent)}
+.help-list{margin:14px 0 0;padding:0;list-style:none;counter-reset:h}
+.help-list li{counter-increment:h;display:flex;gap:12px;padding:9px 0;color:var(--muted);font-size:13.5px;border-top:1px solid var(--line)}
+.help-list li:first-child{border-top:0}
+.help-list li::before{content:counter(h);width:24px;height:24px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;font-size:12px;flex:none}
+.help-list b{color:var(--text);font-weight:600}
+.small{font-size:12.5px}
+
+/* glisser-déposer */
+#dragPage{position:fixed;inset:52px 12px 12px;border-radius:24px;border:2px dashed var(--accent);background:var(--accent-soft);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:grid;place-items:center;z-index:40;pointer-events:none;animation:fade .12s ease-out}
 #dragPage[hidden]{display:none}
-#toasts{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:60;max-width:min(420px,calc(100vw - 32px))}
-.toast{background:var(--text);color:var(--bg);padding:11px 15px;border-radius:12px;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);animation:tin .2s ease-out}
-.toast.err{background:var(--err);color:#fff}
-@keyframes tin{from{transform:translateY(8px);opacity:0}}
+#dragPage div{text-align:center;font-size:20px;font-weight:700;color:var(--text)}
+#dragPage .dz-icon{width:76px;height:76px;border-radius:24px}
+#toasts{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;z-index:60;width:max-content;max-width:calc(100vw - 40px)}
+.toast{background:#1d2130;color:#f3f5fa;padding:11px 18px;border-radius:14px;font-size:13.5px;font-weight:500;box-shadow:0 14px 40px -10px rgba(0,0,0,.5);animation:tin .22s cubic-bezier(.3,.7,.2,1.2);border:1px solid rgba(255,255,255,.08)}
+.toast.err{background:#c62f35;border-color:transparent}
+@keyframes tin{from{transform:translateY(10px);opacity:0}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-<div id="dragPage" hidden>Déposez pour ajouter à l'envoi</div>
-
-<div class="wrap">
-  <header>
-    <div class="brand">
-      <div class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v4M15 3v4M7 7h10v4a5 5 0 0 1-10 0zM12 16v5"/></svg></div>
-      <div>Inter Disk<small>Transfert de fichiers entre deux PC, par câble ou Wi-Fi</small></div>
-    </div>
-    <div class="me">Ce PC : <b id="myName">…</b><button class="btn ghost sm" id="btnSettings" type="button">Réglages</button></div>
-  </header>
-
-  <div class="modebar">
-    <span class="lbl" id="modeLbl">Transférer par :</span>
-    <div class="seg" role="radiogroup" aria-labelledby="modeLbl" id="modeSeg">
-      <button type="button" role="radio" data-mode="cable" aria-checked="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v4M15 3v4M7 7h10v4a5 5 0 0 1-10 0zM12 16v5"/></svg>Câble <small>rapide</small></button>
-      <button type="button" role="radio" data-mode="wifi" aria-checked="false"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.8a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><path d="M12 19.5h.01"/></svg>Wi-Fi <small>plus lent</small></button>
-    </div>
+<div class="titlebar" id="titlebar">
+  <div class="tb-brand"><span class="tb-logo"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9h12l-3.5-3.5M19 15H7l3.5 3.5"/></svg></span>Inter Disk <span class="tb-ver" id="tbVer"></span></div>
+  <div class="tb-spacer"></div>
+  <div class="tb-ctrls">
+    <button class="tb-btn" id="wMin" type="button" aria-label="Réduire" title="Réduire"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M0 5h10" stroke="currentColor" stroke-width="1"/></svg></button>
+    <button class="tb-btn" id="wMax" type="button" aria-label="Agrandir" title="Agrandir"><svg class="maximize" width="10" height="10" viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor"/></svg><svg class="restore" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor"><rect x=".5" y="2.5" width="7" height="7" rx="1.2"/><path d="M2.5 2.5v-.5a1.5 1.5 0 0 1 1.5-1.5h4A1.5 1.5 0 0 1 9.5 2v4a1.5 1.5 0 0 1-1.5 1.5h-.5"/></svg></button>
+    <button class="tb-btn close" id="wClose" type="button" aria-label="Fermer" title="Fermer"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M.5.5l9 9M9.5.5l-9 9" stroke="currentColor" stroke-width="1.1"/></svg></button>
   </div>
+</div>
 
-  <div id="linkStatus" class="status"><span class="dot"></span><div>Chargement…</div></div>
+<div class="app">
+  <aside class="side">
+    <div class="me card">
+      <div class="avatar" id="meAvatar">··</div>
+      <div class="me-info"><div class="me-name" id="myName">…</div><div class="me-sub" id="meSub">Ce PC</div></div>
+      <button class="icon-btn" id="btnSettings" type="button" title="Réglages" aria-label="Réglages"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.2 2h-.4a2 2 0 0 0-2 2v.2a2 2 0 0 1-1 1.7l-.4.3a2 2 0 0 1-2 0l-.2-.1a2 2 0 0 0-2.7.7l-.2.4a2 2 0 0 0 .7 2.7l.2.1a2 2 0 0 1 1 1.7v.5a2 2 0 0 1-1 1.7l-.2.1a2 2 0 0 0-.7 2.7l.2.4a2 2 0 0 0 2.7.7l.2-.1a2 2 0 0 1 2 0l.4.3a2 2 0 0 1 1 1.7v.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-.2a2 2 0 0 1 1-1.7l.4-.3a2 2 0 0 1 2 0l.2.1a2 2 0 0 0 2.7-.7l.2-.4a2 2 0 0 0-.7-2.7l-.2-.1a2 2 0 0 1-1-1.7v-.5a2 2 0 0 1 1-1.7l.2-.1a2 2 0 0 0 .7-2.7l-.2-.4a2 2 0 0 0-2.7-.7l-.2.1a2 2 0 0 1-2 0l-.4-.3a2 2 0 0 1-1-1.7V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
+    </div>
 
-  <main class="grid">
-    <section class="card">
-      <h2><span class="step">1</span>PC destinataire</h2>
-      <div id="peers"></div>
-      <details class="help" id="help">
-        <summary>L'autre PC n'apparaît pas ?</summary>
-        <ol>
-          <li>Lancez <b>Inter Disk sur les deux PC</b>.</li>
-          <li>Vérifiez que le <b>câble RJ45</b> est bien branché des deux côtés (les voyants de la prise doivent s'allumer).</li>
-          <li>Sans box entre les deux, <b>Windows met jusqu'à 1 minute</b> à donner une adresse automatique (169.254.x.x) au câble. Patientez un peu.</li>
-          <li><b>Pare-feu Windows</b> : déjà réglé si Inter Disk a été installé avec <code>InterDisk-Setup.exe</code>. Avec la version portable, autorisez Inter Disk en cochant aussi « <b>Réseaux publics</b> » (un câble direct est vu comme « Réseau non identifié »), ou lancez <code>autoriser-pare-feu.bat</code>.</li>
-          <li><b>En mode Wi-Fi</b> : les deux PC doivent être connectés au même réseau (même box). Les réseaux « invités » ou publics bloquent souvent les échanges entre appareils.</li>
-          <li>En dernier recours, saisissez ci-dessous l'adresse affichée en haut de la fenêtre Inter Disk de l'autre PC.</li>
-        </ol>
-      </details>
-      <form class="manual" id="manualForm" autocomplete="off">
-        <input type="text" id="manualIP" placeholder="Ajouter par adresse IP (ex. 169.254.12.34)" inputmode="decimal" aria-label="Adresse IP de l'autre PC">
-        <button class="btn" type="submit">Ajouter</button>
+    <div>
+      <div class="label" id="modeLbl">Connexion</div>
+      <div class="seg" id="modeSeg" data-mode="cable" role="radiogroup" aria-labelledby="modeLbl">
+        <span class="seg-thumb"></span>
+        <button type="button" role="radio" data-mode="cable" aria-checked="true"><b><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v4M15 3v4M7 7h10v4a5 5 0 0 1-10 0zM12 16v5"/></svg>Câble</b><small>rapide</small></button>
+        <button type="button" role="radio" data-mode="wifi" aria-checked="false"><b><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.8a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><path d="M12 19.5h.01"/></svg>Wi-Fi</b><small>plus lent</small></button>
+      </div>
+      <div class="link" id="linkStatus"><span class="dot"></span><div><b>Chargement…</b></div></div>
+    </div>
+
+    <div class="grow">
+      <div class="label">Appareils <span class="count" id="peerCount">0</span></div>
+      <div class="peers" id="peers"></div>
+    </div>
+
+    <div class="side-foot">
+      <form class="manual" id="manualForm" autocomplete="off" hidden>
+        <input type="text" id="manualIP" placeholder="ex. 169.254.12.34" inputmode="decimal" aria-label="Adresse IP de l'autre PC">
+        <button class="btn sm" type="submit">OK</button>
       </form>
-    </section>
+      <button class="link-btn" id="btnManual" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Ajouter par adresse IP</button>
+      <button class="link-btn" id="btnHelp" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg>L'autre PC n'apparaît pas ?</button>
+    </div>
+  </aside>
 
-    <section class="card">
-      <h2><span class="step">2</span>Fichiers à envoyer</h2>
-      <div class="drop" id="drop">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
-        <p>Glissez vos fichiers ou dossiers dans cette fenêtre</p>
-        <div class="row">
-          <button class="btn" type="button" id="pickFiles">Choisir des fichiers</button>
-          <button class="btn" type="button" id="pickDir">Choisir un dossier</button>
+  <main class="main">
+    <div class="main-inner">
+      <header class="target" id="target"></header>
+
+      <section class="dropzone" id="drop">
+        <div class="dz-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
+        <div class="dz-text">
+          <div class="dz-title">Déposez vos fichiers ou dossiers ici</div>
+          <div class="dz-sub">Toutes les tailles, même des dizaines de Go</div>
         </div>
-      </div>
-      <div class="sel-box" id="selBox" hidden>
-        <div class="sel-head"><span id="selSummary"></span><button class="btn ghost sm" type="button" id="selClear">Tout retirer</button></div>
+        <div class="dz-actions">
+          <button class="btn" type="button" id="pickFiles"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>Fichiers</button>
+          <button class="btn" type="button" id="pickDir"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Dossier</button>
+        </div>
+      </section>
+
+      <section class="selection card" id="selBox" hidden>
+        <div class="sel-head"><div><b id="selCount"></b> <span id="selSize"></span></div><button class="btn ghost sm" type="button" id="selClear">Tout retirer</button></div>
         <ul class="sel-list" id="selList"></ul>
-      </div>
+      </section>
+
       <button class="btn primary big" id="sendBtn" type="button" disabled>Envoyer</button>
       <p class="hint" id="sendHint" hidden><span id="sendHintText"></span><button class="btn sm" type="button" id="sendHintBtn"></button></p>
-    </section>
-  </main>
 
-  <section class="card" id="xferCard">
-    <div class="cardhead"><h2>Transferts</h2><button class="btn ghost sm" type="button" id="clearDone">Effacer l'historique</button></div>
-    <div id="xfers"></div>
-    <p class="empty" id="xferEmpty">Aucun transfert pour l'instant.</p>
-    <div class="foot">Fichiers reçus enregistrés dans <code id="dlDir">…</code><button class="btn sm" type="button" id="openDir">Ouvrir le dossier</button></div>
-  </section>
+      <section class="activity">
+        <div class="sec-head">
+          <h2>Activité</h2>
+          <div class="acts">
+            <button class="btn ghost sm" type="button" id="openDir"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Fichiers reçus</button>
+            <button class="btn ghost sm" type="button" id="clearDone">Effacer</button>
+          </div>
+        </div>
+        <div id="xfers"></div>
+        <div class="empty" id="xferEmpty"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>Les envois et réceptions apparaîtront ici.</div>
+      </section>
+    </div>
+  </main>
 </div>
 
 <!-- Demande de réception -->
 <div class="modal" id="mIn" hidden role="dialog" aria-modal="true" aria-labelledby="inTitle">
-  <div class="dlg">
-    <div class="ico pulse"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div>
+  <div class="dlg in">
+    <div class="in-head"><div class="avatar xl ring" id="inAvatar"></div></div>
     <h3 id="inTitle">Demande de réception</h3>
-    <div id="inSummary" class="muted"></div>
+    <div class="chips" id="inChips"></div>
     <ul class="flist" id="inList"></ul>
-    <div class="small muted">Enregistrement dans <code id="inDest"></code></div>
+    <div class="dest">Enregistrement dans <code id="inDest"></code></div>
     <div id="inSpace"></div>
     <div class="dlg-btns">
       <button class="btn" type="button" id="inNo">Refuser</button>
       <button class="btn primary" type="button" id="inYes">Accepter</button>
     </div>
-    <p class="small muted" id="inTimer" style="text-align:center;margin:12px 0 0"></p>
+    <div class="countdown"><i id="inBar"></i></div>
+    <p class="timer" id="inTimer"></p>
   </div>
 </div>
 
@@ -259,15 +386,15 @@ input[type=text]{font:inherit;color:var(--text);background:var(--card);border:1p
 <div class="modal" id="mSet" hidden role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <form class="dlg" id="setForm" autocomplete="off">
     <h3 id="setTitle">Réglages</h3>
+    <p class="muted small" id="setInfo"></p>
     <div class="field">
-      <label for="setName">Nom de ce PC (vu par l'autre PC)</label>
+      <label for="setName">Nom de ce PC</label>
       <input type="text" id="setName" maxlength="40" style="width:100%">
     </div>
     <div class="field">
       <label for="setDir">Dossier de réception</label>
       <div class="row"><input type="text" id="setDir"><button class="btn" type="button" id="setBrowse">Parcourir…</button></div>
     </div>
-    <p class="small muted" id="setInfo"></p>
     <div class="dlg-btns">
       <button class="btn" type="button" id="setCancel">Annuler</button>
       <button class="btn primary" type="submit">Enregistrer</button>
@@ -275,6 +402,35 @@ input[type=text]{font:inherit;color:var(--text);background:var(--card);border:1p
   </form>
 </div>
 
+<!-- Aide -->
+<div class="modal" id="mHelp" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="dlg">
+    <h3 id="helpTitle">L'autre PC n'apparaît pas ?</h3>
+    <ol class="help-list">
+      <li><span>Lancez <b>Inter Disk sur les deux PC</b>.</span></li>
+      <li><span>Vérifiez que le <b>câble RJ45</b> est branché des deux côtés : les voyants de la prise doivent s'allumer.</span></li>
+      <li><span>Sans box entre les deux, <b>Windows met jusqu'à 1 minute</b> à donner une adresse au câble (169.254.x.x). Patientez un peu.</span></li>
+      <li><span><b>Pare-feu</b> : déjà réglé avec <code>InterDisk-Setup.exe</code>. Avec la version portable, cochez aussi « Réseaux publics » ou lancez <code>autoriser-pare-feu.bat</code>.</span></li>
+      <li><span><b>En Wi-Fi</b>, les deux PC doivent être sur le même réseau. Les réseaux « invités » bloquent souvent les échanges.</span></li>
+      <li><span>Sinon, utilisez <b>Ajouter par adresse IP</b> avec l'adresse affichée sous le nom de l'autre PC.</span></li>
+    </ol>
+    <div class="dlg-btns"><button class="btn primary" type="button" id="helpClose">Compris</button></div>
+  </div>
+</div>
+
+<!-- Quitter pendant un transfert -->
+<div class="modal" id="mQuit" hidden role="dialog" aria-modal="true" aria-labelledby="quitTitle">
+  <div class="dlg">
+    <h3 id="quitTitle">Quitter Inter Disk ?</h3>
+    <p class="muted">Un transfert est en cours : il sera interrompu.</p>
+    <div class="dlg-btns">
+      <button class="btn" type="button" id="quitNo">Rester</button>
+      <button class="btn danger" type="button" id="quitYes">Quitter quand même</button>
+    </div>
+  </div>
+</div>
+
+<div id="dragPage" hidden><div><div class="dz-icon" style="margin:0 auto 16px"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></div><span id="dragText">Déposez pour ajouter à l'envoi</span></div></div>
 <div id="toasts"></div>
 
 <script>
@@ -287,103 +443,147 @@ function fmtDur(s){ if (s < 1) return 'moins d\'1 s'; s = Math.round(s); if (s <
 function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function plural(n, one, many){ return nf0.format(n) + ' ' + (n > 1 ? many : one); }
 const OS = {windows: 'Windows', darwin: 'macOS', linux: 'Linux'};
+function initials(name){ const w = String(name || '?').split(/[\s\-_.]+/).filter(Boolean); return ((w.length > 1 ? w[0][0] + w[1][0] : (w[0] || '?').slice(0, 2)) || '?').toUpperCase(); }
+function hue(s){ let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; }
+const avatar = (cls, name, key) => `<span class="avatar ${cls}" style="--h:${hue(key || name)}">${esc(initials(name))}</span>`;
 
 const ICON = {
-  pc: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
-  file: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>',
-  folder: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
-  up: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
-  down: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>',
+  file: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>',
+  folder: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  up: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>',
+  down: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg>',
+  x: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  send: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
 };
 
-// Fonctions du programme Inter Disk (Go), appelées directement depuis la fenêtre.
+// Fonctions du programme Inter Disk (Go) et de la fenêtre.
 const Go = new Proxy({}, {get: (_, m) => (...args) => window.go.main.App[m](...args)});
+const RT = window.runtime;
 const errText = e => { const s = String((e && e.message) || e || 'Erreur inconnue'); return s.charAt(0).toUpperCase() + s.slice(1); };
 function toast(msg, kind){
   const el = document.createElement('div'); el.className = 'toast' + (kind === 'err' ? ' err' : ''); el.textContent = msg;
-  $('#toasts').appendChild(el); setTimeout(() => el.remove(), kind === 'err' ? 7000 : 4000);
+  $('#toasts').appendChild(el); setTimeout(() => el.remove(), kind === 'err' ? 7000 : 3500);
 }
 const fail = e => toast(errText(e), 'err');
 
-let state = null, selectedPeer = null, peersSig = '', selSig = '';
+// ------------------------------------------------------------ barre de titre
+$('#wMin').onclick = () => RT.WindowMinimise();
+$('#wMax').onclick = () => RT.WindowToggleMaximise();
+$('#wClose').onclick = () => RT.Quit();
+$('#titlebar').addEventListener('dblclick', e => { if (!e.target.closest('.tb-ctrls')) RT.WindowToggleMaximise(); });
+function syncMax(){ Promise.resolve(RT.WindowIsMaximised()).then(m => { document.body.classList.toggle('maxed', !!m); $('#wMax').title = m ? 'Restaurer' : 'Agrandir'; }).catch(() => {}); }
+window.addEventListener('resize', syncMax); syncMax();
+RT.EventsOn('confirm-close', () => { $('#mQuit').hidden = false; });
+$('#quitNo').onclick = () => { $('#mQuit').hidden = true; };
+$('#quitYes').onclick = () => Go.ForceQuit();
+
+// ------------------------------------------------------------ état
+let state = null, selectedPeer = null, peersSig = '', selSig = null, targetSig = '';
 let selection = []; // éléments choisis : {path, name, is_dir, count, size}
 let sending = false;
 let mode = 'cable', modePending = 0;
-const MODE_NAME = {cable: 'câble', wifi: 'Wi-Fi'};
 const modeRoute = p => mode === 'wifi' ? p.wifi : p.cable;
 function setMode(m){
   if (m === mode) return;
-  mode = m; modePending = Date.now(); peersSig = ''; selSig = '';
-  if (state) { renderMode(); renderLink(); renderPeers(); renderSend(); }
+  mode = m; modePending = Date.now(); peersSig = ''; targetSig = '';
+  if (state) { renderMode(); renderLink(); renderPeers(); renderTarget(); renderSend(); }
   Go.SetMode(m).catch(fail);
 }
 function renderMode(){
+  $('#modeSeg').dataset.mode = mode;
   for (const b of document.querySelectorAll('#modeSeg button')) b.setAttribute('aria-checked', String(b.dataset.mode === mode));
 }
 $('#modeSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setMode(b.dataset.mode); });
 
-// ------------------------------------------------------------ état en direct
 function onState(){
-  // le mode enregistré fait foi, sauf juste après un clic (le temps que le réglage soit pris en compte)
-  if (Date.now() - modePending > 2000 && state.me.route_mode && state.me.route_mode !== mode) { mode = state.me.route_mode; peersSig = ''; selSig = ''; }
+  if (Date.now() - modePending > 2000 && state.me.route_mode && state.me.route_mode !== mode) { mode = state.me.route_mode; peersSig = ''; targetSig = ''; }
   renderMode();
-  $('#myName').textContent = state.me.name;
-  $('#dlDir').textContent = state.me.download_dir;
-  renderLink(); renderPeers(); renderSend(); renderXfers(); renderIncoming();
+  $('#tbVer').textContent = state.version;
+  if ($('#myName').textContent !== state.me.name) {
+    $('#myName').textContent = state.me.name;
+    const a = $('#meAvatar'); a.textContent = initials(state.me.name); a.style.setProperty('--h', hue(state.me.id));
+  }
+  renderLink(); renderPeers(); renderTarget(); renderSend(); renderXfers(); renderIncoming();
 }
 
-function renderLink(){
+// ------------------------------------------------------------ connexion
+function linkInfo(){
   const ifs = (state.ifaces || []).filter(i => i.kind !== 'virtual');
   const cable = ifs.filter(i => i.kind === 'cable' || (i.kind === 'other' && i.link_local));
   const direct = cable.find(i => i.link_local);
-  const el = $('#linkStatus'); let cls, html;
   if (mode === 'wifi') {
-    const wifi = ifs.filter(i => i.kind === 'wifi');
-    const net = ifs.filter(i => !i.link_local && i.kind !== 'wifi');
-    const speed = `<div class="extra">Les fichiers passent par votre box ou votre point d'accès : c'est plus lent qu'un câble (souvent 5 à 40 Mo/s). Les deux PC doivent être connectés au même réseau.</div>`;
-    if (wifi.length) { cls = 'info'; html = `<b>Mode Wi-Fi</b> — carte « ${esc(wifi[0].name)} » · adresse de ce PC : <code>${esc(wifi[0].ip)}</code>` + speed; }
-    else if (net.length) { cls = 'info'; html = `<b>Mode réseau</b> — pas de Wi-Fi actif, passage par la carte « ${esc(net[0].name)} » (<code>${esc(net[0].ip)}</code>)` + speed; }
-    else { cls = 'warn'; html = `<b>Aucune connexion Wi-Fi active sur ce PC.</b><div class="extra">Connectez ce PC au même réseau Wi-Fi que l'autre PC, ou repassez en mode Câble.</div>`; }
-  } else if (direct) {
-    cls = 'ok'; html = `<b>Câble Ethernet direct détecté</b> — carte « ${esc(direct.name)} »<div class="extra">Adresse de ce PC sur le câble : <code>${esc(direct.ip)}</code> · les transferts passent par le câble, pas par le Wi-Fi ni la box.</div>`;
-  } else if (cable.length) {
-    cls = 'ok'; html = `<b>Ethernet connecté</b> — carte « ${esc(cable[0].name)} »<div class="extra">Adresse de ce PC : <code>${esc(cable[0].ip)}</code> · les PC vus par ce câble sont utilisés en priorité.</div>`;
-  } else {
-    cls = 'warn'; html = `<b>Aucun câble Ethernet actif détecté.</b><div class="extra">Branchez le câble RJ45 entre les deux PC. Sous Windows, l'adresse automatique du câble (169.254.x.x) peut mettre jusqu'à 1 minute à apparaître.${ifs.length ? ' Autres cartes : ' + ifs.map(i => esc(i.name) + ' <code>' + esc(i.ip) + '</code>').join(', ') : ''}</div>`;
+    const wifi = ifs.find(i => i.kind === 'wifi');
+    const net = ifs.find(i => !i.link_local && i.kind !== 'wifi');
+    if (wifi) return {cls: 'info', title: 'Wi-Fi connecté', sub: 'Par la box · plus lent qu\'un câble', ip: wifi.ip};
+    if (net) return {cls: 'info', title: 'Réseau local', sub: 'Carte « ' + net.name + ' » · par la box', ip: net.ip};
+    return {cls: 'warn', title: 'Aucun Wi-Fi actif', sub: 'Connectez ce PC au même réseau que l\'autre PC, ou repassez en mode Câble.'};
   }
-  if (!state.discovery_ok) html += `<div class="extra" style="color:var(--err)">Détection automatique indisponible (port UDP 47820 occupé) : ajoutez l'autre PC par son adresse IP.</div>`;
-  if (el.dataset.h !== html) { el.dataset.h = html; el.className = 'status ' + cls; el.innerHTML = '<span class="dot"></span><div>' + html + '</div>'; }
+  if (direct) return {cls: 'ok', title: 'Câble direct détecté', sub: 'Carte « ' + direct.name + ' » · jusqu\'à ~110 Mo/s', ip: direct.ip};
+  if (cable.length) return {cls: 'ok', title: 'Ethernet connecté', sub: 'Carte « ' + cable[0].name + ' »', ip: cable[0].ip};
+  return {cls: 'warn', title: 'Aucun câble détecté', sub: 'Branchez le câble RJ45. L\'adresse peut mettre jusqu\'à 1 minute à apparaître.'};
+}
+function renderLink(){
+  const l = linkInfo();
+  let html = `<span class="dot"></span><div><b>${esc(l.title)}</b><span>${esc(l.sub)}</span>`;
+  if (!state.discovery_ok) html += `<span class="err">Détection automatique indisponible (port 47820 occupé) : ajoutez l'autre PC par son adresse IP.</span>`;
+  html += '</div>';
+  const el = $('#linkStatus');
+  if (el.dataset.h !== html) { el.dataset.h = html; el.className = 'link ' + l.cls; el.innerHTML = html; }
+  const sub = (OS[state.me.os] || state.me.os) + (l.ip ? ' · ' + l.ip : '');
+  if ($('#meSub').textContent !== sub) $('#meSub').textContent = sub;
 }
 
-function routeBadge(p){
+// ------------------------------------------------------------ appareils
+function routeInfo(p){
   const r = modeRoute(p);
   if (!r) return mode === 'wifi'
-    ? `<span class="badge off" title="Ce PC n'est pas visible par le Wi-Fi">Pas en Wi-Fi</span>`
-    : `<span class="badge ${p.wifi ? 'warn' : 'off'}" title="Ce PC n'est pas relié par le câble">${p.wifi ? 'Wi-Fi seulement' : 'Pas de câble'}</span>`;
-  if (mode === 'cable') return `<span class="badge ok">${r.link_local ? 'Câble direct' : 'Câble Ethernet'}</span>`;
-  if (r.kind === 'wifi') return `<span class="badge info">Wi-Fi</span>`;
-  return `<span class="badge info">Réseau · ${esc(r.iface)}</span>`;
+    ? {cls: 'off', label: 'Pas visible en Wi-Fi'}
+    : (p.wifi ? {cls: 'warn', label: 'Wi-Fi seulement (pas de câble)'} : {cls: 'off', label: 'Pas de câble'});
+  if (mode === 'cable') return {cls: 'ok', label: r.link_local ? 'Câble direct' : 'Câble Ethernet', ip: r.ip};
+  return {cls: 'info', label: r.kind === 'wifi' ? 'Wi-Fi' : 'Réseau · ' + r.iface, ip: r.ip};
 }
 function renderPeers(){
   const peers = state.peers || [];
   if (selectedPeer && !peers.some(p => p.id === selectedPeer)) selectedPeer = null;
   if (!selectedPeer && peers.length === 1) selectedPeer = peers[0].id;
-  const sig = JSON.stringify([mode, peers.map(p => [p.id, p.name, p.os, p.cable && p.cable.ip, p.cable && p.cable.link_local, p.wifi && p.wifi.ip, p.wifi && p.wifi.kind, p.wifi && p.wifi.iface]), selectedPeer]);
+  const sig = JSON.stringify([mode, peers.map(p => [p.id, p.name, p.os, p.cable && p.cable.ip, p.cable && p.cable.link_local, p.wifi && p.wifi.ip, p.wifi && p.wifi.kind]), selectedPeer]);
   if (sig === peersSig) return; peersSig = sig;
+  $('#peerCount').textContent = peers.length;
   const box = $('#peers');
   if (!peers.length) {
-    box.innerHTML = `<div class="searching"><span class="spin"></span><div><b>Recherche de l'autre PC…</b><br><span class="muted small">${mode === 'wifi' ? 'Lancez Inter Disk sur l\'autre PC, connecté au même réseau Wi-Fi.' : 'Lancez Inter Disk sur l\'autre PC, relié par le câble.'}</span></div></div>`;
+    box.innerHTML = `<div class="scan"><span class="mini-radar"><i></i><i></i><i></i><b></b></span><div><b>Recherche…</b>${mode === 'wifi' ? 'Ouvrez Inter Disk sur l\'autre PC, sur le même Wi-Fi.' : 'Ouvrez Inter Disk sur l\'autre PC, relié par le câble.'}</div></div>`;
     return;
   }
-  box.innerHTML = peers.map(p => `<button type="button" class="peer ${p.id === selectedPeer ? 'sel' : ''} ${modeRoute(p) ? '' : 'off'}" data-id="${esc(p.id)}" aria-pressed="${p.id === selectedPeer}">
-      <span class="pc-ico">${ICON.pc}</span>
-      <span class="pinfo"><b>${esc(p.name)}</b><span>${esc(OS[p.os] || p.os)} · ${esc((modeRoute(p) || p.best).ip)}</span></span>
-      ${routeBadge(p)}<span class="radio"></span></button>`).join('');
+  box.innerHTML = peers.map(p => {
+    const ri = routeInfo(p);
+    return `<button type="button" class="peer ${p.id === selectedPeer ? 'sel' : ''} ${ri.cls === 'off' || ri.cls === 'warn' ? 'off' : ''}" data-id="${esc(p.id)}" aria-pressed="${p.id === selectedPeer}" title="${esc(ri.label)}">
+      ${avatar('sm', p.name, p.id)}
+      <span class="pinfo"><b>${esc(p.name)}</b><span>${esc(ri.label)}${ri.ip ? ' · ' + esc(ri.ip) : ''}</span></span>
+      <span class="pdot ${ri.cls}"></span></button>`;
+  }).join('');
 }
 $('#peers').addEventListener('click', e => {
   const b = e.target.closest('.peer'); if (!b) return;
-  selectedPeer = b.dataset.id; peersSig = ''; renderPeers(); renderSend();
+  selectedPeer = b.dataset.id; peersSig = ''; targetSig = ''; renderPeers(); renderTarget(); renderSend();
 });
+
+function renderTarget(){
+  const peers = state.peers || [];
+  const peer = peers.find(p => p.id === selectedPeer);
+  let html;
+  if (peer) {
+    const ri = routeInfo(peer);
+    const pillCls = ri.cls === 'off' ? 'warn' : ri.cls;
+    const pill = ri.cls === 'ok' ? ri.label + ' · rapide' : ri.cls === 'info' ? ri.label + ' · plus lent' : ri.label;
+    html = `<div class="t-left">${avatar('lg', peer.name, peer.id)}<div style="min-width:0"><div class="t-kicker">Envoyer à</div><div class="t-name">${esc(peer.name)}</div></div></div><span class="pill ${pillCls}">${esc(pill)}</span>`;
+  } else if (!peers.length) {
+    html = `<div class="t-left"><span class="radar"><i></i><i></i><i></i><b></b></span><div><div class="t-name">Recherche des appareils…</div><div class="t-kicker">${mode === 'wifi' ? 'Ouvrez Inter Disk sur l\'autre PC, connecté au même Wi-Fi.' : 'Ouvrez Inter Disk sur l\'autre PC, relié par le câble RJ45.'}</div></div></div><button class="btn sm" type="button" data-help>Aide</button>`;
+  } else {
+    html = `<div class="t-left"><div><div class="t-kicker">Envoyer à</div><div class="t-name">Choisissez un appareil</div></div></div>`;
+  }
+  if (html !== targetSig) { targetSig = html; $('#target').innerHTML = html; }
+}
+$('#target').addEventListener('click', e => { if (e.target.closest('[data-help]')) $('#mHelp').hidden = false; });
 
 // ------------------------------------------------------------ sélection
 const selCount = () => selection.reduce((s, i) => s + i.count, 0);
@@ -393,23 +593,29 @@ function renderSend(){
   if (sig !== selSig) {
     selSig = sig;
     $('#selBox').hidden = !selection.length;
-    $('#selSummary').textContent = plural(selCount(), 'fichier', 'fichiers') + ' · ' + fmtSize(selSize());
-    $('#selList').innerHTML = selection.slice(0, 300).map((it, k) => `<li title="${esc(it.path)}"><span class="fico">${it.is_dir ? ICON.folder : ICON.file}</span><span class="nm">${esc(it.name)}</span><span class="sz">${it.is_dir ? plural(it.count, 'fichier', 'fichiers') + ' · ' : ''}${fmtSize(it.size)}</span><button type="button" class="x" data-k="${k}" title="Retirer" aria-label="Retirer ${esc(it.name)}">×</button></li>`).join('')
+    $('#drop').classList.toggle('compact', selection.length > 0);
+    $('#selCount').textContent = plural(selCount(), 'fichier', 'fichiers');
+    $('#selSize').textContent = '· ' + fmtSize(selSize());
+    $('#selList').innerHTML = selection.slice(0, 300).map((it, k) => `<li title="${esc(it.path)}"><span class="ficon ${it.is_dir ? 'dir' : ''}">${it.is_dir ? ICON.folder : ICON.file}</span><span class="nm">${esc(it.name)}</span><span class="sz">${it.is_dir ? plural(it.count, 'fichier', 'fichiers') + ' · ' : ''}${fmtSize(it.size)}</span><button type="button" class="x" data-k="${k}" title="Retirer" aria-label="Retirer ${esc(it.name)}">${ICON.x}</button></li>`).join('')
       + (selection.length > 300 ? `<li class="muted">… et ${selection.length - 300} autres éléments</li>` : '');
   }
   const btn = $('#sendBtn');
   const peer = state && (state.peers || []).find(p => p.id === selectedPeer);
   const other = mode === 'wifi' ? 'cable' : 'wifi';
   let hint = '';
-  if (peer && !modeRoute(peer)) {
+  if (peer && !modeRoute(peer) && selection.length) {
     hint = mode === 'wifi' ? `${peer.name} n'est pas visible en Wi-Fi.` : `${peer.name} n'est pas relié par câble.`;
     if (!(other === 'wifi' ? peer.wifi : peer.cable)) hint += mode === 'wifi' ? ' Les deux PC doivent être sur le même réseau.' : ' Vérifiez le câble.';
   }
-  if (sending) { btn.disabled = true; btn.textContent = 'Préparation de l\'envoi…'; }
-  else if (!selection.length) { btn.disabled = true; btn.textContent = 'Envoyer'; }
-  else if (!peer) { btn.disabled = true; btn.textContent = 'Choisissez d\'abord le PC destinataire'; }
-  else if (!modeRoute(peer)) { btn.disabled = true; btn.textContent = mode === 'wifi' ? 'Pas de liaison Wi-Fi avec ce PC' : 'Pas de liaison par câble avec ce PC'; }
-  else { btn.disabled = false; btn.textContent = `Envoyer ${plural(selCount(), 'fichier', 'fichiers')} (${fmtSize(selSize())}) à ${peer.name} par ${MODE_NAME[mode]}`; }
+  let label, ok = false;
+  if (sending) label = 'Préparation de l\'envoi…';
+  else if (!selection.length) label = 'Ajoutez des fichiers à envoyer';
+  else if (!peer) label = 'Choisissez d\'abord l\'appareil destinataire';
+  else if (!modeRoute(peer)) label = mode === 'wifi' ? 'Pas de liaison Wi-Fi avec cet appareil' : 'Pas de liaison par câble avec cet appareil';
+  else { ok = true; label = `Envoyer ${plural(selCount(), 'fichier', 'fichiers')} · ${fmtSize(selSize())}`; }
+  const html = esc(label) + (ok ? ICON.send : '');
+  if (btn.dataset.h !== html) { btn.dataset.h = html; btn.innerHTML = html; }
+  btn.disabled = !ok;
   $('#sendHint').hidden = !hint;
   if (hint) {
     $('#sendHintText').textContent = hint;
@@ -419,10 +625,7 @@ function renderSend(){
   }
 }
 $('#sendHintBtn').onclick = () => setMode(mode === 'wifi' ? 'cable' : 'wifi');
-$('#selList').addEventListener('click', e => {
-  const b = e.target.closest('.x'); if (!b) return;
-  selection.splice(Number(b.dataset.k), 1); renderSend();
-});
+$('#selList').addEventListener('click', e => { const b = e.target.closest('.x'); if (!b) return; selection.splice(Number(b.dataset.k), 1); renderSend(); });
 $('#selClear').onclick = () => { selection = []; renderSend(); };
 
 function addItems(items){
@@ -441,47 +644,49 @@ $('#pickDir').onclick = () => Go.PickFolder().then(addItems, fail);
 let dragDepth = 0;
 const hasFiles = e => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
 const hideDrag = () => { dragDepth = 0; $('#dragPage').hidden = true; $('#drop').classList.remove('over'); };
-window.addEventListener('dragenter', e => { if (!hasFiles(e)) return; dragDepth++; $('#dragPage').hidden = false; $('#drop').classList.add('over'); });
+window.addEventListener('dragenter', e => {
+  if (!hasFiles(e)) return; dragDepth++;
+  const peer = state && (state.peers || []).find(p => p.id === selectedPeer);
+  $('#dragText').textContent = peer ? 'Déposez pour envoyer à ' + peer.name : 'Déposez pour ajouter à l\'envoi';
+  $('#dragPage').hidden = false; $('#drop').classList.add('over');
+});
 window.addEventListener('dragleave', e => { if (!hasFiles(e)) return; if (--dragDepth <= 0) hideDrag(); });
 window.addEventListener('drop', hideDrag);
-window.runtime.OnFileDrop((x, y, paths) => {
-  hideDrag();
-  if (paths && paths.length) Go.Describe(paths).then(addItems, fail);
-}, false);
+RT.OnFileDrop((x, y, paths) => { hideDrag(); if (paths && paths.length) Go.Describe(paths).then(addItems, fail); }, false);
 
-// ------------------------------------------------------------ envoi
 $('#sendBtn').onclick = async () => {
   const peer = (state.peers || []).find(p => p.id === selectedPeer);
   if (!peer || !selection.length || !modeRoute(peer) || sending) return;
   sending = true; renderSend();
   try { await Go.Send(peer.id, mode, selection.map(i => i.path)); selection = []; }
   catch (e) { fail(e); }
-  finally { sending = false; selSig = ''; renderSend(); }
+  finally { sending = false; selSig = null; renderSend(); }
 };
 
-// ------------------------------------------------------------ transferts
+// ------------------------------------------------------------ activité
 const xferEls = new Map();
 function xferText(t){
   const who = t.peer_name;
   const what = t.count === 1 ? t.first.split('/').pop() : plural(t.count, 'fichier', 'fichiers');
-  const title = (t.dir === 'out' ? 'Envoi vers ' : 'Réception depuis ') + who + ' — ' + what;
-  const via = t.kind === 'wifi' ? ' · via Wi-Fi' : (t.kind === 'cable' || t.link_local ? ' · par câble' : ' · via le réseau');
-  let sub = '', pct = t.total > 0 ? t.done / t.total * 100 : (t.state === 'done' ? 100 : 0);
+  const title = (t.dir === 'out' ? 'Vers ' : 'De ') + who + ' — ' + what;
+  const via = t.kind === 'wifi' ? ' · Wi-Fi' : (t.kind === 'cable' || t.link_local ? ' · câble' : ' · réseau');
+  let sub = '', pct = t.total > 0 ? t.done / t.total * 100 : (t.state === 'done' ? 100 : 0), pctText = '';
   switch (t.state) {
     case 'connecting': sub = 'Connexion à ' + who + '…'; break;
-    case 'waiting': sub = 'En attente d\'acceptation sur ' + who + '… (' + fmtSize(t.total) + ')'; break;
+    case 'waiting': sub = 'En attente d\'acceptation sur ' + who + '… · ' + fmtSize(t.total); break;
     case 'pending': sub = 'En attente de votre réponse…'; break;
     case 'transferring':
-      sub = fmtSize(t.done) + ' sur ' + fmtSize(t.total) + (t.speed > 0 ? ' · ' + fmtSize(t.speed) + '/s' : '') + (t.speed > 0 && t.eta > 0 ? ' · reste ' + fmtDur(t.eta) : '') + via;
-      if (t.count > 1 && t.current) sub += ' · ' + (t.cur_index + 1) + '/' + t.count + ' : ' + t.current.split('/').pop();
+      pctText = Math.floor(pct) + ' %';
+      sub = fmtSize(t.done) + ' / ' + fmtSize(t.total) + (t.speed > 0 ? ' · ' + fmtSize(t.speed) + '/s' : '') + (t.speed > 0 && t.eta > 0 ? ' · reste ' + fmtDur(t.eta) : '') + via;
+      if (t.count > 1 && t.current) sub += ' · ' + (t.cur_index + 1) + '/' + t.count + ' ' + t.current.split('/').pop();
       break;
-    case 'done': sub = 'Terminé · ' + fmtSize(t.total) + ' en ' + fmtDur(t.elapsed) + (t.speed > 0 ? ' (' + fmtSize(t.speed) + '/s)' : '') + via; pct = 100; break;
+    case 'done': sub = 'Terminé · ' + fmtSize(t.total) + ' en ' + fmtDur(t.elapsed) + (t.speed > 0 ? ' · ' + fmtSize(t.speed) + '/s' : '') + via; pct = 100; pctText = '✓'; break;
     case 'rejected': sub = t.error || 'Refusé'; break;
     case 'expired': sub = t.error || 'Demande expirée'; break;
     case 'cancelled': sub = 'Annulé' + (t.error ? ' — ' + t.error : ''); break;
     case 'error': sub = t.error || 'Erreur'; break;
   }
-  return {title, sub, pct};
+  return {title, sub, pct, pctText};
 }
 function renderXfers(){
   const list = state.transfers || [];
@@ -493,26 +698,26 @@ function renderXfers(){
     let e = xferEls.get(t.id);
     if (!e) {
       e = document.createElement('div');
-      e.innerHTML = `<div class="xrow"><span class="xdir">${t.dir === 'out' ? ICON.up : ICON.down}</span><div class="xmain"><div class="xtitle"></div><div class="xsub"></div></div><div class="xact"></div></div><div class="bar"><i></i></div>`;
-      e.r = {title: e.querySelector('.xtitle'), sub: e.querySelector('.xsub'), act: e.querySelector('.xact'), fill: e.querySelector('.bar i')};
+      e.innerHTML = `<span class="xdir">${t.dir === 'out' ? ICON.up : ICON.down}</span><div class="xmain"><div class="xtop"><span class="xtitle"></span><span class="xpct"></span></div><div class="bar"><i></i></div><div class="xsub"></div></div><div class="xact"></div>`;
+      e.r = {title: e.querySelector('.xtitle'), pct: e.querySelector('.xpct'), sub: e.querySelector('.xsub'), act: e.querySelector('.xact'), fill: e.querySelector('.bar i')};
       e.actKey = null; xferEls.set(t.id, e);
     }
-    const {title, sub, pct} = xferText(t);
-    const cls = 'xfer ' + t.dir + ' st-' + t.state + (['connecting', 'waiting', 'pending'].includes(t.state) ? ' wait' : '') + (['rejected', 'expired', 'cancelled', 'error'].includes(t.state) && !t.done ? ' nobar' : '');
+    const {title, sub, pct, pctText} = xferText(t);
+    const cls = 'xfer card ' + t.dir + ' st-' + t.state + (['connecting', 'waiting', 'pending'].includes(t.state) ? ' wait' : '') + (['rejected', 'expired', 'cancelled', 'error'].includes(t.state) && !t.done ? ' nobar' : '');
     if (e.className !== cls) e.className = cls;
     if (e.r.title.textContent !== title) { e.r.title.textContent = title; e.r.title.title = title; }
     if (e.r.sub.textContent !== sub) e.r.sub.textContent = sub;
+    if (e.r.pct.textContent !== pctText) e.r.pct.textContent = pctText;
     e.r.fill.style.width = Math.min(100, pct).toFixed(1) + '%';
     const active = ['connecting', 'waiting', 'transferring'].includes(t.state);
     const key = active ? 'cancel' : (t.state === 'pending' ? 'answer' : (t.dir === 'in' && t.state === 'done' ? 'open' : ''));
     if (e.actKey !== key) {
       e.actKey = key; e.r.act.innerHTML = '';
       const mk = (label, cls2, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn sm ' + cls2; b.textContent = label; b.onclick = fn; e.r.act.appendChild(b); };
-      if (key === 'cancel') mk('Annuler', 'danger', () => Go.Cancel(t.id).catch(fail));
+      if (key === 'cancel') mk('Annuler', 'ghost danger', () => Go.Cancel(t.id).catch(fail));
       if (key === 'answer') mk('Répondre', 'primary', () => { shownIn = null; renderIncoming(true); });
       if (key === 'open') mk('Ouvrir', '', () => Go.OpenFolder(t.id).catch(fail));
     }
-    // ordre : plus récent en haut
     const want = prev ? prev.nextSibling : box.firstChild;
     if (want !== e) box.insertBefore(e, want);
     prev = e;
@@ -523,7 +728,7 @@ $('#clearDone').onclick = () => Go.ClearFinished().catch(fail);
 $('#openDir').onclick = () => Go.OpenFolder('').catch(fail);
 
 // ------------------------------------------------------------ demande entrante
-let shownIn = null, dismissed = new Set();
+let shownIn = null; const dismissed = new Set();
 function renderIncoming(force){
   const pend = (state.transfers || []).filter(t => t.dir === 'in' && t.state === 'pending');
   const t = pend.find(x => !dismissed.has(x.id) || force) || null;
@@ -532,13 +737,16 @@ function renderIncoming(force){
   if (force) dismissed.delete(t.id);
   if (shownIn !== t.id) {
     shownIn = t.id; m.hidden = false;
-    $('#inTitle').textContent = t.peer_name + ' veut vous envoyer ' + (t.count === 1 ? 'un fichier' : 'des fichiers');
-    $('#inSummary').textContent = plural(t.count, 'fichier', 'fichiers') + ' · ' + fmtSize(t.total) + (t.kind === 'wifi' ? ' · via Wi-Fi' : (t.kind === 'cable' || t.link_local ? ' · par le câble' : ''));
-    $('#inList').innerHTML = (t.preview || []).map(p => `<li title="${esc(p)}">${esc(p)}</li>`).join('') + (t.count > (t.preview || []).length ? `<li class="muted">… et ${nf0.format(t.count - t.preview.length)} autres</li>` : '');
+    const av = $('#inAvatar'); av.textContent = initials(t.peer_name); av.style.setProperty('--h', hue(t.peer_name));
+    $('#inTitle').textContent = t.peer_name + ' vous envoie ' + (t.count === 1 ? 'un fichier' : 'des fichiers');
+    const via = t.kind === 'wifi' ? '<span class="chip info">Wi-Fi</span>' : (t.kind === 'cable' || t.link_local ? '<span class="chip ok">Câble</span>' : '');
+    $('#inChips').innerHTML = `<span class="chip">${esc(plural(t.count, 'fichier', 'fichiers'))}</span><span class="chip">${esc(fmtSize(t.total))}</span>${via}`;
+    $('#inList').innerHTML = (t.preview || []).map(p => `<li title="${esc(p)}">${p.includes('/') ? ICON.folder : ICON.file}<span>${esc(p)}</span></li>`).join('') + (t.count > (t.preview || []).length ? `<li class="muted"><span>… et ${nf0.format(t.count - t.preview.length)} autres</span></li>` : '');
     $('#inDest').textContent = t.dest_dir;
     $('#inSpace').innerHTML = (t.free_space >= 0 && t.total > t.free_space) ? `<div class="warnline">Espace disque insuffisant : ${fmtSize(t.free_space)} libres pour ${fmtSize(t.total)}.</div>` : '';
     $('#inYes').focus();
   }
+  $('#inBar').style.width = Math.max(0, Math.min(100, t.expires_in / 120 * 100)).toFixed(1) + '%';
   $('#inTimer').textContent = 'Refus automatique dans ' + fmtDur(t.expires_in);
 }
 async function answer(accept){
@@ -551,7 +759,7 @@ async function answer(accept){
 $('#inYes').onclick = () => answer(true);
 $('#inNo').onclick = () => answer(false);
 
-// ------------------------------------------------------------ réglages
+// ------------------------------------------------------------ réglages, aide, ajout par IP
 function openSettings(){
   $('#setName').value = state ? state.me.name : '';
   $('#setDir').value = state ? state.me.download_dir : '';
@@ -566,17 +774,25 @@ $('#setForm').onsubmit = async e => {
   try { await Go.SaveSettings($('#setName').value, $('#setDir').value); $('#mSet').hidden = true; toast('Réglages enregistrés'); }
   catch (err) { fail(err); }
 };
+$('#btnHelp').onclick = () => { $('#mHelp').hidden = false; };
+$('#helpClose').onclick = () => { $('#mHelp').hidden = true; };
+$('#btnManual').onclick = () => { const f = $('#manualForm'); f.hidden = !f.hidden; if (!f.hidden) $('#manualIP').focus(); };
 $('#manualForm').onsubmit = async e => {
   e.preventDefault();
   const v = $('#manualIP').value.trim(); if (!v) return;
-  try { const ip = await Go.AddPeer(v); $('#manualIP').value = ''; toast('Recherche d\'Inter Disk sur ' + ip + '…'); }
+  try { const ip = await Go.AddPeer(v); $('#manualIP').value = ''; $('#manualForm').hidden = true; toast('Recherche d\'Inter Disk sur ' + ip + '…'); }
   catch (err) { fail(err); }
 };
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (!$('#mSet').hidden) $('#mSet').hidden = true; else if (shownIn) { dismissed.add(shownIn); $('#mIn').hidden = true; shownIn = null; } } });
+for (const m of ['#mSet', '#mHelp', '#mQuit']) $(m).addEventListener('mousedown', e => { if (e.target === e.currentTarget) e.currentTarget.hidden = true; });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  for (const m of ['#mSet', '#mHelp', '#mQuit']) if (!$(m).hidden) { $(m).hidden = true; return; }
+  if (shownIn) { dismissed.add(shownIn); $('#mIn').hidden = true; shownIn = null; }
+});
 document.addEventListener('contextmenu', e => { if (!e.target.closest('input')) e.preventDefault(); });
 
 // ------------------------------------------------------------ démarrage
-window.runtime.EventsOn('state', s => { state = s; onState(); });
+RT.EventsOn('state', s => { state = s; onState(); });
 Go.State().then(s => { if (!state) { state = s; onState(); } }, fail);
 </script>
 </body>

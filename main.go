@@ -21,13 +21,14 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode"
 )
 
 const (
 	appName    = "Inter Disk"
-	appVersion = "2.0.0"
+	appVersion = "2.1.0"
 	// Ancien nom de l'application (versions 1.x), pour reprendre ses réglages.
 	legacyName = "CableDrop"
 )
@@ -50,6 +51,7 @@ type App struct {
 	xfers *TransferManager
 
 	transferPort int
+	forceQuit    atomic.Bool
 }
 
 // testHTTPServe est fourni par testhttp.go (compilé uniquement avec -tags testhttp).

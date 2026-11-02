@@ -5,6 +5,8 @@ package main
 import (
 	"syscall"
 	"unsafe"
+
+	"golang.org/x/sys/windows/registry"
 )
 
 var (
@@ -25,4 +27,15 @@ func showErrorBox(title, msg string) {
 func beep() {
 	const mbIconAsterisk = 0x40
 	procBeep.Call(mbIconAsterisk)
+}
+
+// systemDark indique si Windows est en mode sombre pour les applications.
+func systemDark() bool {
+	k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Themes\Personalize`, registry.QUERY_VALUE)
+	if err != nil {
+		return false
+	}
+	defer k.Close()
+	v, _, err := k.GetIntegerValue("AppsUseLightTheme")
+	return err == nil && v == 0
 }
