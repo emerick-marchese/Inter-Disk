@@ -26,7 +26,7 @@ Toutes les explications sont dans le [README](https://github.com/$REPO#readme).
 NOTES_EOF
 fi
 
-id=$(gh api "repos/$REPO/releases/tags/$TAG" --jq .id 2>/dev/null || true)
+id=$(gh api "repos/$REPO/releases/tags/$TAG" --jq .id 2>/dev/null) || id=""
 if [ -z "$id" ]; then
   echo "Création de la Release $TAG…"
   id=$(gh api -X POST "repos/$REPO/releases" -f tag_name="$TAG" -f target_commitish="$COMMIT" \
