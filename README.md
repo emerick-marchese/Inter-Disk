@@ -41,6 +41,15 @@ Les fichiers sont lus directement sur le disque, par petits morceaux : vous pouv
 envoyer des fichiers de plusieurs dizaines de Go (machines virtuelles, vidéos…)
 sans ralentir le PC.
 
+**Transfert coupé ?** (câble débranché, PC en veille, plantage…) Renvoyez simplement
+les mêmes fichiers depuis le même PC : Inter Disk **reprend là où il s'était arrêté**,
+au lieu de tout recommencer. Le PC qui reçoit affiche « Reprise · X déjà reçus ». Les
+fichiers partiels sont gardés 14 jours.
+
+**Vitesse d'envoi maximale** (Réglages) : par défaut, Inter Disk envoie aussi vite que
+le câble le permet. Si un PC se fige ou plante pendant les gros envois, baissez-la
+(20 Mo/s par exemple) sur ce PC.
+
 ---
 
 ## Câble ou Wi-Fi ?
@@ -101,7 +110,9 @@ de la connexion filaire sur **« Lien local uniquement »**.
 | « Aucun câble Ethernet actif détecté » | Le câble est débranché ou défectueux, ou Windows attribue encore l'adresse (attendez 1 minute). |
 | En Wi-Fi, l'autre PC n'apparaît pas | Les deux PC doivent être sur le même réseau. Les réseaux « invités » ou publics bloquent souvent les échanges entre appareils. |
 | Toujours rien | Dans le champ « Ajouter par adresse IP », saisissez l'adresse affichée en haut de la fenêtre Inter Disk de l'autre PC. |
-| « Transfert interrompu par l'autre PC » | L'autre PC a annulé, s'est mis en veille, ou la connexion a été coupée. Relancez l'envoi. |
+| « Transfert interrompu par l'autre PC » | L'autre PC a annulé, s'est mis en veille, ou la connexion a été coupée. Renvoyez les mêmes fichiers : le transfert reprend là où il s'est arrêté. |
+| Un PC se fige ou fait un **écran bleu** pendant un gros envoi | Un écran bleu vient toujours de Windows : un pilote (carte réseau, adaptateur USB-Ethernet, antivirus, disque) ou le matériel. Sur ce PC : 1) mettez à jour le pilote de la carte réseau depuis le site du fabricant (Realtek, Intel…) ; 2) dans Inter Disk, *Réglages → Vitesse d'envoi maximale* : 20 Mo/s ; 3) si le fichier est sur un disque USB, copiez-le d'abord sur le disque interne ; 4) relancez l'envoi, il reprendra où il s'était arrêté. Notez le code affiché sur l'écran bleu (ex. `DRIVER_IRQL_NOT_LESS_OR_EQUAL` + nom de fichier `.sys`) : il indique le pilote fautif. |
+| « Aucune donnée depuis… » | L'autre PC ne répond plus (figé, en veille, câble débranché). Le transfert s'arrête seul au bout d'une minute ; renvoyez ensuite pour reprendre. |
 
 En cas de problème, le journal de l'application se trouve dans
 `%AppData%\Inter Disk\inter-disk.log`.

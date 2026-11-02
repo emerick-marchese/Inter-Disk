@@ -28,7 +28,7 @@ import (
 
 const (
 	appName    = "Inter Disk"
-	appVersion = "2.1.1"
+	appVersion = "2.2.0"
 	// Ancien nom de l'application (versions 1.x), pour reprendre ses réglages.
 	legacyName = "CableDrop"
 )
@@ -37,7 +37,8 @@ type Config struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	DownloadDir string `json:"download_dir"`
-	RouteMode   string `json:"route_mode"` // cable (par défaut) | wifi
+	RouteMode   string `json:"route_mode"`    // cable (par défaut) | wifi
+	MaxSendMBps int    `json:"max_send_mbps"` // vitesse d'envoi maximale en Mo/s (0 = illimitée)
 }
 
 type App struct {

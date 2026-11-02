@@ -263,6 +263,12 @@ input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--acc
 .field{margin:16px 0 0}
 .field label{display:block;font-weight:600;font-size:13px;margin-bottom:7px}
 .field .row{display:flex;gap:8px}
+.field .note{font-size:12px;color:var(--muted);margin:7px 2px 0;line-height:1.45}
+select{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line-2);border-radius:10px;padding:8px 34px 8px 11px;width:100%;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a92a3' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+@media (prefers-color-scheme: dark){select option{background:#161a22}}
+.xfer.stalled .xsub{color:var(--warn)}
 .help-list{margin:14px 0 0;padding:0;list-style:none;counter-reset:h}
 .help-list li{counter-increment:h;display:flex;gap:12px;padding:9px 0;color:var(--muted);font-size:13.5px;border-top:1px solid var(--line)}
 .help-list li:first-child{border-top:0}
@@ -399,6 +405,18 @@ body.maxed #grip{display:none}
       <label for="setDir">Dossier de réception</label>
       <div class="row"><input type="text" id="setDir"><button class="btn" type="button" id="setBrowse">Parcourir…</button></div>
     </div>
+    <div class="field">
+      <label for="setSpeed">Vitesse d'envoi maximale</label>
+      <select id="setSpeed">
+        <option value="0">Maximale (recommandé)</option>
+        <option value="50">50 Mo/s</option>
+        <option value="20">20 Mo/s</option>
+        <option value="10">10 Mo/s</option>
+        <option value="5">5 Mo/s</option>
+      </select>
+      <p class="note">Si ce PC se fige ou plante pendant les gros envois, baissez la vitesse : certains pilotes de carte réseau supportent mal la pleine charge.</p>
+    </div>
+    <button class="btn ghost sm" type="button" id="setLog" style="margin-top:12px">Ouvrir le journal d'Inter Disk</button>
     <div class="dlg-btns">
       <button class="btn" type="button" id="setCancel">Annuler</button>
       <button class="btn primary" type="submit">Enregistrer</button>
@@ -693,10 +711,16 @@ function xferText(t){
     case 'pending': sub = 'En attente de votre réponse…'; break;
     case 'transferring':
       pctText = Math.floor(pct) + ' %';
-      sub = fmtSize(t.done) + ' / ' + fmtSize(t.total) + (t.speed > 0 ? ' · ' + fmtSize(t.speed) + '/s' : '') + (t.speed > 0 && t.eta > 0 ? ' · reste ' + fmtDur(t.eta) : '') + via;
-      if (t.count > 1 && t.current) sub += ' · ' + (t.cur_index + 1) + '/' + t.count + ' ' + t.current.split('/').pop();
+      if (t.stalled >= 3) {
+        sub = fmtSize(t.done) + ' / ' + fmtSize(t.total) + ' · aucune donnée depuis ' + fmtDur(t.stalled) + ' (l\'autre PC répond-il ?)';
+      } else {
+        const eta = t.speed > 50e3 && t.eta > 0 && t.eta < 360000 ? ' · reste ' + fmtDur(t.eta) : (t.speed > 0 ? '' : ' · démarrage…');
+        sub = fmtSize(t.done) + ' / ' + fmtSize(t.total) + (t.speed > 0 ? ' · ' + fmtSize(t.speed) + '/s' : '') + eta + via;
+      }
+      if (t.resumed > 0) sub += ' · reprise';
+      if (t.count > 1 && t.current && t.stalled < 3) sub += ' · ' + (t.cur_index + 1) + '/' + t.count + ' ' + t.current.split('/').pop();
       break;
-    case 'done': sub = 'Terminé · ' + fmtSize(t.total) + ' en ' + fmtDur(t.elapsed) + (t.speed > 0 ? ' · ' + fmtSize(t.speed) + '/s' : '') + via; pct = 100; pctText = '✓'; break;
+    case 'done': sub = 'Terminé · ' + fmtSize(t.total) + ' en ' + fmtDur(t.elapsed) + (t.speed > 0 ? ' · ' + fmtSize(t.speed) + '/s' : '') + via + (t.resumed > 0 ? ' · repris après interruption' : ''); pct = 100; pctText = '✓'; break;
     case 'rejected': sub = t.error || 'Refusé'; break;
     case 'expired': sub = t.error || 'Demande expirée'; break;
     case 'cancelled': sub = 'Annulé' + (t.error ? ' — ' + t.error : ''); break;
@@ -719,7 +743,7 @@ function renderXfers(){
       e.actKey = null; xferEls.set(t.id, e);
     }
     const {title, sub, pct, pctText} = xferText(t);
-    const cls = 'xfer card ' + t.dir + ' st-' + t.state + (['connecting', 'waiting', 'pending'].includes(t.state) ? ' wait' : '') + (['rejected', 'expired', 'cancelled', 'error'].includes(t.state) && !t.done ? ' nobar' : '');
+    const cls = 'xfer card ' + t.dir + ' st-' + t.state + (['connecting', 'waiting', 'pending'].includes(t.state) ? ' wait' : '') + (['rejected', 'expired', 'cancelled', 'error'].includes(t.state) && !t.done ? ' nobar' : '') + (t.state === 'transferring' && t.stalled >= 3 ? ' stalled' : '');
     if (e.className !== cls) e.className = cls;
     if (e.r.title.textContent !== title) { e.r.title.textContent = title; e.r.title.title = title; }
     if (e.r.sub.textContent !== sub) e.r.sub.textContent = sub;
@@ -756,7 +780,8 @@ function renderIncoming(force){
     const av = $('#inAvatar'); av.textContent = initials(t.peer_name); av.style.setProperty('--h', hue(t.peer_name));
     $('#inTitle').textContent = t.peer_name + ' vous envoie ' + (t.count === 1 ? 'un fichier' : 'des fichiers');
     const via = t.kind === 'wifi' ? '<span class="chip info">Wi-Fi</span>' : (t.kind === 'cable' || t.link_local ? '<span class="chip ok">Câble</span>' : '');
-    $('#inChips').innerHTML = `<span class="chip">${esc(plural(t.count, 'fichier', 'fichiers'))}</span><span class="chip">${esc(fmtSize(t.total))}</span>${via}`;
+    const resume = t.resumed > 0 ? `<span class="chip ok">Reprise · ${esc(fmtSize(t.resumed))} déjà reçus</span>` : '';
+    $('#inChips').innerHTML = `<span class="chip">${esc(plural(t.count, 'fichier', 'fichiers'))}</span><span class="chip">${esc(fmtSize(t.total))}</span>${via}${resume}`;
     $('#inList').innerHTML = (t.preview || []).map(p => `<li title="${esc(p)}">${p.includes('/') ? ICON.folder : ICON.file}<span>${esc(p)}</span></li>`).join('') + (t.count > (t.preview || []).length ? `<li class="muted"><span>… et ${nf0.format(t.count - t.preview.length)} autres</span></li>` : '');
     $('#inDest').textContent = t.dest_dir;
     $('#inSpace').innerHTML = (t.free_space >= 0 && t.total > t.free_space) ? `<div class="warnline">Espace disque insuffisant : ${fmtSize(t.free_space)} libres pour ${fmtSize(t.total)}.</div>` : '';
@@ -779,15 +804,19 @@ $('#inNo').onclick = () => answer(false);
 function openSettings(){
   $('#setName').value = state ? state.me.name : '';
   $('#setDir').value = state ? state.me.download_dir : '';
+  const sp = String(state ? state.me.max_send_mbps || 0 : 0);
+  if (![...$('#setSpeed').options].some(o => o.value === sp)) $('#setSpeed').add(new Option(sp + ' Mo/s', sp));
+  $('#setSpeed').value = sp;
   $('#setInfo').textContent = state ? `Inter Disk ${state.version} · port de transfert ${state.me.port}` : '';
   $('#mSet').hidden = false; $('#setName').focus();
 }
 $('#btnSettings').onclick = openSettings;
 $('#setCancel').onclick = () => { $('#mSet').hidden = true; };
+$('#setLog').onclick = () => Go.OpenLog().catch(fail);
 $('#setBrowse').onclick = () => Go.PickDownloadDir().then(p => { if (p) $('#setDir').value = p; }, fail);
 $('#setForm').onsubmit = async e => {
   e.preventDefault();
-  try { await Go.SaveSettings($('#setName').value, $('#setDir').value); $('#mSet').hidden = true; toast('Réglages enregistrés'); }
+  try { await Go.SaveSettings($('#setName').value, $('#setDir').value, Number($('#setSpeed').value)); $('#mSet').hidden = true; toast('Réglages enregistrés'); }
   catch (err) { fail(err); }
 };
 $('#btnHelp').onclick = () => { $('#mHelp').hidden = false; };

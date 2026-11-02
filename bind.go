@@ -21,6 +21,7 @@ type MeView struct {
 	OS          string `json:"os"`
 	DownloadDir string `json:"download_dir"`
 	RouteMode   string `json:"route_mode"`
+	MaxSendMBps int    `json:"max_send_mbps"`
 	Port        int    `json:"port"`
 }
 
@@ -39,7 +40,7 @@ func (a *App) State() StateView {
 	c := a.config()
 	return StateView{
 		Version:      appVersion,
-		Me:           MeView{ID: c.ID, Name: c.Name, OS: runtime.GOOS, DownloadDir: c.DownloadDir, RouteMode: c.RouteMode, Port: a.transferPort},
+		Me:           MeView{ID: c.ID, Name: c.Name, OS: runtime.GOOS, DownloadDir: c.DownloadDir, RouteMode: c.RouteMode, MaxSendMBps: c.MaxSendMBps, Port: a.transferPort},
 		Ifaces:       a.disc.Ifaces(),
 		Peers:        a.disc.Peers(),
 		Transfers:    a.xfers.Views(),
@@ -143,8 +144,12 @@ func expandHome(p string) string {
 	return p
 }
 
-// SaveSettings enregistre le nom du PC et le dossier de réception.
-func (a *App) SaveSettings(name, dir string) error {
+// SaveSettings enregistre le nom du PC, le dossier de réception et la vitesse
+// d'envoi maximale (Mo/s, 0 = illimitée).
+func (a *App) SaveSettings(name, dir string, maxMBps int) error {
+	if maxMBps < 0 || maxMBps > 10000 {
+		return errors.New("vitesse maximale invalide")
+	}
 	name = cleanName(name)
 	if name == "" {
 		return errors.New("le nom du PC ne peut pas être vide")
@@ -162,7 +167,7 @@ func (a *App) SaveSettings(name, dir string) error {
 	}
 	f.Close()
 	os.Remove(f.Name())
-	if err := a.updateConfig(func(c *Config) { c.Name, c.DownloadDir = name, dir }); err != nil {
+	if err := a.updateConfig(func(c *Config) { c.Name, c.DownloadDir, c.MaxSendMBps = name, dir, maxMBps }); err != nil {
 		return errors.New("impossible d'enregistrer les réglages : " + err.Error())
 	}
 	a.disc.Kick()
@@ -201,6 +206,15 @@ func (a *App) OpenFolder(id string) error {
 		return errors.New("impossible d'ouvrir le dossier : " + err.Error())
 	}
 	return nil
+}
+
+// OpenLog ouvre le journal de l'application (utile en cas de problème).
+func (a *App) OpenLog() error {
+	p := filepath.Join(filepath.Dir(a.cfgPath), "inter-disk.log")
+	if _, err := os.Stat(p); err != nil {
+		return errors.New("journal introuvable")
+	}
+	return openPath(p)
 }
 
 // AddPeer cherche Inter Disk à une adresse IP précise.

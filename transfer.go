@@ -24,6 +24,10 @@ import (
 //   4. destinataire → Done                 (tout est écrit sur le disque)
 // Chaque message JSON est précédé de sa longueur sur 4 octets.
 
+// Version 2 du protocole : reprise des transferts interrompus (Answer.Offsets).
+// Un PC en version 1 continue de fonctionner, simplement sans reprise.
+var protoVersion = 2
+
 const (
 	protoMagic     = "CDROP\x01"
 	maxFiles       = 500000
@@ -49,8 +53,9 @@ type Offer struct {
 }
 
 type Answer struct {
-	Accept bool   `json:"accept"`
-	Reason string `json:"reason,omitempty"`
+	Accept  bool    `json:"accept"`
+	Reason  string  `json:"reason,omitempty"`
+	Offsets []int64 `json:"offsets,omitempty"` // v2 : octets déjà reçus par fichier (reprise)
 }
 
 type Done struct {
@@ -138,6 +143,38 @@ func (c *countingWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
+// pacedWriter limite le débit d'envoi (réglage « Vitesse d'envoi maximale ») et
+// découpe les écritures en petits morceaux réguliers, pour ménager les pilotes
+// réseau qui supportent mal la pleine charge.
+type pacedWriter struct {
+	w     io.Writer
+	rate  float64 // octets par seconde
+	start time.Time
+	sent  int64
+}
+
+func (p *pacedWriter) Write(b []byte) (int, error) {
+	if p.start.IsZero() {
+		p.start = time.Now()
+	}
+	total := 0
+	for len(b) > 0 {
+		n := min(len(b), 64<<10)
+		due := p.start.Add(time.Duration(float64(p.sent) / p.rate * float64(time.Second)))
+		if d := time.Until(due); d > 0 {
+			time.Sleep(d)
+		}
+		w, err := p.w.Write(b[:n])
+		total += w
+		p.sent += int64(w)
+		if err != nil {
+			return total, err
+		}
+		b = b[n:]
+	}
+	return total, nil
+}
+
 // ---------------------------------------------------------------- Transfer
 
 type Transfer struct {
@@ -171,6 +208,9 @@ type Transfer struct {
 	lastT     time.Time
 	lastB     int64
 	speed     float64
+	resumed   int64     // octets déjà présents au départ (reprise)
+	lastDone  int64     // pour détecter un transfert bloqué
+	lastMove  time.Time // dernier moment où des données sont passées
 
 	decision   chan bool
 	cancelCh   chan struct{}
@@ -304,6 +344,8 @@ type TransferView struct {
 	DestDir   string   `json:"dest_dir,omitempty"`
 	Roots     []string `json:"roots,omitempty"`
 	FreeSpace int64    `json:"free_space"`
+	Resumed   int64    `json:"resumed"`
+	Stalled   float64  `json:"stalled"` // secondes sans aucune donnée
 }
 
 func (t *Transfer) view() TransferView {
@@ -315,6 +357,7 @@ func (t *Transfer) view() TransferView {
 		ID: t.ID, Dir: t.Dir, PeerName: t.PeerName, PeerIP: t.PeerIP, Iface: t.Iface, Kind: t.Kind,
 		LinkLocal: t.LinkLocal, State: t.state, Error: t.errMsg, Count: len(t.Files), Total: t.Total,
 		Done: done, CurIndex: t.cur, DestDir: t.destDir, Roots: t.roots, FreeSpace: t.freeSpace,
+		Resumed: t.resumed,
 	}
 	if len(t.Files) > 0 {
 		v.First = t.Files[0].Path
@@ -332,6 +375,13 @@ func (t *Transfer) view() TransferView {
 			}
 			t.lastT, t.lastB = now, done
 		}
+		if t.lastMove.IsZero() || done != t.lastDone {
+			t.lastDone, t.lastMove = done, now
+		}
+		if s := now.Sub(t.lastMove).Seconds(); s >= 3 {
+			v.Stalled = s
+			t.speed = 0
+		}
 		v.Speed = t.speed
 		if v.Speed > 0 {
 			v.ETA = float64(t.Total-done) / v.Speed
@@ -344,7 +394,7 @@ func (t *Transfer) view() TransferView {
 		if !t.started.IsZero() {
 			v.Elapsed = t.finished.Sub(t.started).Seconds()
 			if v.Elapsed > 0 {
-				v.Speed = float64(t.Total) / v.Elapsed
+				v.Speed = float64(t.Total-t.resumed) / v.Elapsed
 			}
 		}
 	case stPending:
@@ -367,10 +417,12 @@ type TransferManager struct {
 	list     []*Transfer
 	byID     map[string]*Transfer
 	reserved map[string]int // dossiers/fichiers de destination en cours d'écriture
+	resume   *resumeStore
 }
 
 func NewTransferManager(app *App) *TransferManager {
-	return &TransferManager{app: app, byID: map[string]*Transfer{}, reserved: map[string]int{}}
+	return &TransferManager{app: app, byID: map[string]*Transfer{}, reserved: map[string]int{},
+		resume: newResumeStore(filepath.Dir(app.cfgPath))}
 }
 
 func (m *TransferManager) add(t *Transfer) {
@@ -494,7 +546,7 @@ func (m *TransferManager) runSend(t *Transfer, r Route) {
 		conn, err = d.Dial("tcp4", addr)
 	}
 	if err != nil {
-		t.fail("Connexion impossible à " + t.PeerName + " (" + addr + "). Vérifiez que CableDrop est ouvert sur l'autre PC et que le pare-feu l'autorise.")
+		t.fail("Connexion impossible à " + t.PeerName + " (" + addr + "). Vérifiez qu'Inter Disk est ouvert sur l'autre PC et que le pare-feu l'autorise.")
 		return
 	}
 	defer conn.Close()
@@ -506,7 +558,7 @@ func (m *TransferManager) runSend(t *Transfer, r Route) {
 	cfg := m.app.config()
 	_ = conn.SetDeadline(time.Now().Add(30 * time.Second))
 	if _, err := io.WriteString(conn, protoMagic); err == nil {
-		err = writeMsg(conn, Offer{App: "cabledrop", V: 1, FromID: cfg.ID, FromName: cfg.Name, Files: t.Files, Total: t.Total})
+		err = writeMsg(conn, Offer{App: "cabledrop", V: protoVersion, FromID: cfg.ID, FromName: cfg.Name, Files: t.Files, Total: t.Total})
 	}
 	if err != nil {
 		t.fail("Échec de l'envoi de la demande : " + err.Error())
@@ -530,16 +582,44 @@ func (m *TransferManager) runSend(t *Transfer, r Route) {
 		logf("%s", msg)
 		return
 	}
+	// Reprise : le destinataire indique ce qu'il a déjà (v2). Sinon, tout est envoyé.
+	resumable := ans.Offsets != nil
+	offsets := ans.Offsets
+	if len(offsets) != len(t.Files) {
+		offsets = make([]int64, len(t.Files))
+	}
+	for i, off := range offsets {
+		if off < 0 || off > t.Files[i].Size {
+			t.fail("Réponse invalide de " + t.PeerName + ".")
+			return
+		}
+	}
+	t.mu.Lock()
+	t.resumed = sum64(offsets)
+	t.mu.Unlock()
+	t.done.Store(t.resumed)
+	if t.resumed > 0 {
+		logf("Reprise de l'envoi vers %s : %s déjà reçus.", t.PeerName, fmtSize(t.resumed))
+	}
 	t.setState(stTransferring, "")
 
 	// Les fichiers sont lus directement sur le disque, par blocs de 1 Mo :
 	// la mémoire utilisée reste la même quelle que soit la taille du fichier.
-	ic := idleConn{conn, idleTimeout}
-	cw := &countingWriter{w: ic, n: &t.done}
+	var out io.Writer = idleConn{conn, idleTimeout}
+	if lim := cfg.MaxSendMBps; lim > 0 {
+		out = &pacedWriter{w: out, rate: float64(lim) * 1e6}
+		logf("Vitesse d'envoi limitée à %d Mo/s.", lim)
+	}
+	cw := &countingWriter{w: out, n: &t.done}
 	buf := make([]byte, copyBufferSize)
+	interrupted := "Transfert interrompu par l'autre PC (annulé, câble débranché, PC en veille ou planté)."
+	if resumable {
+		interrupted += " Renvoyez les mêmes fichiers : le transfert reprendra là où il s'est arrêté."
+	}
 	for i, f := range t.Files {
 		t.setCurrent(i)
-		if f.Size == 0 {
+		off := offsets[i]
+		if f.Size == 0 || off >= f.Size {
 			continue
 		}
 		fh, err := os.Open(f.abs)
@@ -547,14 +627,21 @@ func (m *TransferManager) runSend(t *Transfer, r Route) {
 			t.fail("Impossible d'ouvrir « " + f.Path + " » : " + err.Error())
 			return
 		}
-		n, err := io.CopyBuffer(cw, io.LimitReader(fh, f.Size), buf)
+		if off > 0 {
+			if _, err := fh.Seek(off, io.SeekStart); err != nil {
+				fh.Close()
+				t.fail("Lecture impossible : " + err.Error())
+				return
+			}
+		}
+		n, err := io.CopyBuffer(cw, io.LimitReader(fh, f.Size-off), buf)
 		fh.Close()
-		if err == nil && n != f.Size {
-			err = fmt.Errorf("le fichier « %s » a été modifié ou raccourci pendant l'envoi (%d octets lus sur %d)", f.Path, n, f.Size)
+		if err == nil && n != f.Size-off {
+			err = fmt.Errorf("le fichier « %s » a été modifié ou raccourci pendant l'envoi", f.Path)
 		}
 		if err != nil {
 			if cw.err != nil {
-				t.fail("Transfert interrompu par l'autre PC (annulé, câble débranché ou PC en veille).")
+				t.fail(interrupted)
 			} else {
 				t.fail("Lecture impossible : " + err.Error())
 			}
@@ -639,8 +726,20 @@ func (m *TransferManager) handleIncoming(conn net.Conn) {
 	t.expires = time.Now().Add(askTimeout)
 	t.destDir = m.app.config().DownloadDir
 	t.freeSpace = freeSpace(existingParent(t.destDir))
+
+	// Reprise possible ? (même PC, mêmes fichiers, même dossier de réception)
+	resumable := offer.V >= 2
+	sig := offerSignature(offer.FromID, files)
+	var rec *resumeRec
+	if resumable {
+		if r := m.resume.get(sig); r != nil && r.DestDir == t.destDir && len(r.Rels) == len(files) && len(r.Safe) == len(files) {
+			rec = r
+			t.resumed = sum64(resumeOffsets(rec, files))
+		}
+	}
 	m.add(t)
-	logf("Demande de %s : %d fichier(s), %s — répondez dans la fenêtre CableDrop du navigateur.", name, len(files), fmtSize(total))
+	logf("Demande de %s : %d fichier(s), %s%s.", name, len(files), fmtSize(total),
+		map[bool]string{true: " (reprise : " + fmtSize(t.resumed) + " déjà reçus)", false: ""}[t.resumed > 0])
 	m.app.notifyIncoming()
 
 	// Pendant l'attente, on surveille si l'expéditeur abandonne.
@@ -687,7 +786,17 @@ func (m *TransferManager) handleIncoming(conn net.Conn) {
 		t.setState(stError, "Dossier de réception inaccessible : "+err.Error())
 		return
 	}
-	rels, roots := planPaths(dest, files, m.isReserved)
+	var rels, roots []string
+	offsets := make([]int64, len(files))
+	if rec != nil {
+		rels, roots = rec.Rels, rec.Roots
+		offsets = resumeOffsets(rec, files)
+	} else {
+		rels, roots = planPaths(dest, files, m.isReserved)
+		if resumable {
+			m.resume.put(sig, &resumeRec{DestDir: dest, Rels: rels, Roots: roots, Safe: make([]int64, len(files))})
+		}
+	}
 	full := make([]string, len(roots))
 	for i, r := range roots {
 		full[i] = filepath.Join(dest, r)
@@ -702,12 +811,24 @@ func (m *TransferManager) handleIncoming(conn net.Conn) {
 		t.fail("")
 		return
 	}
-	if err := writeMsg(conn, Answer{Accept: true}); err != nil {
+	ans := Answer{Accept: true}
+	if resumable {
+		ans.Offsets = offsets
+	}
+	if err := writeMsg(conn, ans); err != nil {
 		t.fail("Connexion perdue avec " + name + ".")
 		return
 	}
+	t.mu.Lock()
+	t.resumed = sum64(offsets)
+	t.mu.Unlock()
+	t.done.Store(t.resumed)
 	t.setState(stTransferring, "")
-	logf("Réception depuis %s vers %s…", name, dest)
+	logf("Réception depuis %s vers %s (déjà reçus : %s)…", name, dest, fmtSize(t.resumed))
+	interrupted := "Transfert interrompu par l'autre PC (annulé, câble débranché, PC en veille ou planté)."
+	if resumable {
+		interrupted += " Le début est conservé : renvoyez les mêmes fichiers depuis l'autre PC pour reprendre."
+	}
 
 	ic := idleConn{conn, idleTimeout}
 	buf := make([]byte, copyBufferSize)
@@ -723,17 +844,53 @@ func (m *TransferManager) handleIncoming(conn net.Conn) {
 			}
 			madeDirs[dir] = true
 		}
-		part := final + ".cdpart"
-		fh, err := os.OpenFile(part, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+		part := final + partExt
+		off := offsets[i]
+		if off >= f.Size && f.Size > 0 {
+			continue // déjà reçu lors d'un envoi précédent
+		}
+		fh, err := os.OpenFile(part, os.O_CREATE|os.O_WRONLY, 0o644)
+		if err == nil {
+			err = fh.Truncate(off)
+			if err == nil {
+				_, err = fh.Seek(off, io.SeekStart)
+			}
+			if err != nil {
+				fh.Close()
+			}
+		}
 		if err != nil {
 			t.fail("Impossible d'écrire " + final + " : " + err.Error())
 			return
 		}
 		bw := bufio.NewWriterSize(fh, 2<<20)
 		cw := &countingWriter{w: bw, n: &t.done}
-		n, err := io.CopyBuffer(cw, io.LimitReader(ic, f.Size), buf)
+		written, remaining := off, f.Size-off
+		for remaining > 0 && err == nil {
+			chunk := min(remaining, checkpointEvery)
+			var n int64
+			n, err = io.CopyBuffer(cw, io.LimitReader(ic, chunk), buf)
+			written += n
+			remaining -= n
+			if err == nil && n != chunk {
+				err = io.ErrUnexpectedEOF
+			}
+			if err == nil && resumable && remaining > 0 {
+				// Point de reprise : données vidées et synchronisées sur le disque.
+				if err = bw.Flush(); err == nil {
+					err = fh.Sync()
+				}
+				if err != nil {
+					cw.err = err
+				} else {
+					m.resume.setSafe(sig, i, written)
+				}
+			}
+		}
 		if err == nil {
-			err = bw.Flush()
+			if err = bw.Flush(); err == nil && f.Size >= 64<<20 {
+				err = fh.Sync()
+			}
 			if err != nil {
 				cw.err = err
 			}
@@ -741,15 +898,15 @@ func (m *TransferManager) handleIncoming(conn net.Conn) {
 		if cerr := fh.Close(); err == nil && cerr != nil {
 			err, cw.err = cerr, cerr
 		}
-		if err == nil && n != f.Size {
-			err = io.ErrUnexpectedEOF
-		}
 		if err != nil {
-			os.Remove(part)
 			if cw.err != nil {
 				t.fail("Erreur d'écriture sur le disque (disque plein ?) : " + cw.err.Error())
 			} else {
-				t.fail("Transfert interrompu par l'autre PC (annulé, câble débranché ou PC en veille).")
+				_ = bw.Flush()
+				t.fail(interrupted)
+			}
+			if !resumable {
+				os.Remove(part)
 			}
 			return
 		}
@@ -763,6 +920,12 @@ func (m *TransferManager) handleIncoming(conn net.Conn) {
 			mt := time.UnixMilli(f.MTime)
 			_ = os.Chtimes(final, mt, mt)
 		}
+		if resumable {
+			m.resume.setSafe(sig, i, f.Size)
+		}
+	}
+	if resumable {
+		m.resume.del(sig)
 	}
 	_ = conn.SetWriteDeadline(time.Now().Add(30 * time.Second))
 	_ = writeMsg(conn, Done{OK: true})

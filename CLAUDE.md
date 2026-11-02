@@ -29,6 +29,12 @@ Voir README.md pour l'utilisation.
   (`window.go.main.App.*` en JavaScript). L'interface est dans `ui/index.html`.
 - Les fichiers envoyés sont lus directement sur le disque par le Go (jamais par
   l'interface) : mémoire constante quelle que soit la taille.
+- Reprise (`resume.go`, protocole v2) : le destinataire garde les `.cdpart` et
+  `reprises.json` (octets synchronisés sur disque, point tous les 256 Mo) ; un renvoi
+  des mêmes fichiers par le même PC reprend. Un PC en protocole v1 reste compatible
+  (sans reprise).
+- Vitesse d'envoi maximale (`Config.MaxSendMBps`, `pacedWriter`) : contournement
+  pour les pilotes réseau qui plantent à pleine charge.
 - Test de bout en bout de l'interface sans fenêtre : `go build -tags testhttp` puis
   `-test-http PORT` (pilote l'interface réelle dans un navigateur automatisé).
 - Icône et ressources Windows : `assets/` et `rsrc_windows_*.syso`. Pour les régénérer
